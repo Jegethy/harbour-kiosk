@@ -20,15 +20,14 @@ Work through this before the kiosk goes live in the lobby.
 - [ ] **Delete the `/kiosk/preview` route** (`src/app/(kiosk-shell)/kiosk/preview/`). It is a
       design walkthrough with stand-in data, kept for review only. It is
       unauthenticated and has no place in the lobby.
-- [ ] **`public/logo.png` must be a real PNG with transparency.** The idle
-      screen is a light canvas and the logo sits directly on it, so a JPEG
-      saved under a `.png` name renders as a solid rectangle. Check with:
-      ```
-      node -e "console.log(require('fs').readFileSync('public/logo.png').subarray(0,4).toString('hex'))"
-      ```
-      `89504e47` is PNG. `ffd8ffe0` is JPEG — re-export it.
-      If the file is missing the screen falls back to the wordmark in type,
-      which is on brand and therefore easy to mistake for the real thing.
+- [ ] **Run `npm run check:logo`** after any change to `public/logo.png`.
+      The artwork carries its own maroon background, so the idle screen must be
+      that exact colour or a square appears around the logo. The check verifies
+      the file is a real PNG, samples its corner pixel, compares it with
+      `--color-brand-primary`, and prints the dimensions to set in
+      `BrandLogo.tsx`. If the file is missing the screen falls back to the
+      wordmark in type — on brand, and therefore easy to mistake for the real
+      thing.
 - [ ] **Apply every migration in `supabase/migrations/`** in filename order
       (`supabase db push`, or paste each into the SQL Editor). All are
       idempotent and safe to re-run.

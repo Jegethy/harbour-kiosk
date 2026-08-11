@@ -49,7 +49,8 @@ npm run build && npm start
 | `npm run dev` | Development server |
 | `npm run build` | Production build |
 | `npm run lint` | ESLint |
-| `npm run check:scanner` | Verify the fob scan timing rules (15 assertions, no browser needed) |
+| `npm run check:scanner` | Verify the fob scan timing rules (16 assertions, no browser needed) |
+| `npm run check:logo` | Verify `public/logo.png` format, size and background match |
 
 ## Security model
 

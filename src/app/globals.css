@@ -7,33 +7,33 @@
  * declared in @theme becomes a utility, so --color-brand-primary gives you
  * bg-brand-primary, text-brand-primary, border-brand-primary and so on.
  *
+ * --color-brand-primary is sampled from public/logo.png, not chosen. The
+ * artwork carries its own maroon background, so the idle screen has to be that
+ * exact value or a square appears around the logo. `npm run check:logo`
+ * verifies the two still agree after any change to either.
+ *
  * Measured contrast for the pairs actually in use:
- *   slate on canvas   #1E293B on #F4EFE6 -> 12.8:1 (AAA)
- *   muted on canvas   #55606F on #F4EFE6 ->  5.6:1 (AA)
- *   red on canvas     #C8102E on #F4EFE6 ->  5.1:1 (AA)
- *   cream on maroon   #F7E8D0 on #882425 ->  7.4:1 (AAA)
- *   maroon on cream   #882425 on #F7E8D0 ->  7.4:1 (AAA)
- *   white on red      #FFFFFF on #C8102E ->  5.9:1 (AA)
- *   red on cream      #C8102E on #F7E8D0 ->  4.9:1 (AA)
+ *   cream on maroon   #F7E8D0 on #7E1C1D -> 8.4:1 (AAA)
+ *   dim on maroon     #D9C6AB on #7E1C1D -> 6.1:1 (AA)
+ *   maroon on cream   #7E1C1D on #F7E8D0 -> 8.4:1 (AAA)
+ *   red on cream      #C8102E on #F7E8D0 -> 4.9:1 (AA large)
+ *   white on red      #FFFFFF on #C8102E -> 5.9:1 (AA)
+ *
+ *   red on maroon     #C8102E on #7E1C1D -> 1.7:1 (FAILS)
+ *
+ * That last pair is why the keyfob badge is a cream disc holding a red icon
+ * rather than a red disc: brand red on brand maroon is nearly invisible, so a
+ * red call-to-action on this background would disappear at a glance.
  *
  * Red is a call-to-action and an alert colour, not a text colour. Keep it for
- * badges, borders and full-bleed alerts; never set body copy in it.
+ * badges, icons and full-bleed alerts; never set body copy in it.
  */
 @theme {
-  --color-brand-primary: #882425;
+  --color-brand-primary: #7e1c1d;
   --color-brand-cream: #f7e8d0;
   --color-brand-accent: #c8102e;
   --color-neutral-dark: #1f1f1f;
   --color-neutral-light: #faf7f2;
-
-  /* The idle kiosk: a warm cream rather than white. This screen is lit 24/7 in
-     a lobby, so glare matters more than crispness. */
-  --color-kiosk-canvas: #f4efe6;
-  --color-kiosk-ink: #1e293b;
-  --color-kiosk-muted: #55606f;
-
-  /* "CARE CENTRE" in the logo wordmark. */
-  --color-brand-gold: #b1976b;
 
   /* Derived steps for depth, pressed states and dividers. */
   --color-brand-deep: #6b1c1d;
@@ -64,7 +64,7 @@ body {
 body[data-kiosk] {
   /* Matches the idle screen, which is what is on display all day, so there is
      no flash of a different colour between screens. */
-  background: var(--color-kiosk-canvas);
+  background: var(--color-brand-primary);
   overscroll-behavior: none;
   -webkit-user-select: none;
   user-select: none;

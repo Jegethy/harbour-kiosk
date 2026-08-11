@@ -6,29 +6,27 @@ import { useState } from "react";
 /**
  * The centre logo.
  *
- * No wrapper, background or padding — the artwork is expected to be a
- * transparent PNG sitting directly on the canvas. Width is capped by the
- * caller; height follows the file's own aspect ratio, so replacing the artwork
- * needs no code change.
+ * The artwork carries its own maroon background, so it must sit on a canvas of
+ * exactly --color-brand-primary or a square appears around it. That value is
+ * sampled from this file rather than chosen; `npm run check:logo` re-verifies
+ * the match and reports the dimensions to use below.
  *
- * The width/height props are only intrinsic-ratio hints for reserving space
- * before load. CSS drives the rendered size.
- *
- * If the file is missing or fails to decode we fall back to the wordmark set
- * in type. A broken image icon in a lobby reads as a fault; this does not.
+ * If the file is missing or fails to decode we fall back to the wordmark set in
+ * type. A broken image icon in a lobby reads as a fault; this does not.
  */
 export function BrandLogo({ className = "" }: { className?: string }) {
   const [failed, setFailed] = useState(false);
 
   if (failed) {
     return (
-      <div className={`text-center ${className}`}>
-        <p className="font-serif text-6xl font-bold leading-none tracking-tight text-brand-accent">
+      <div className={`flex flex-col justify-center text-center ${className}`}>
+        <p className="font-serif text-6xl font-bold leading-none tracking-tight text-brand-cream">
           Harbour
         </p>
-        <p className="mt-2 text-xl font-semibold uppercase tracking-[0.28em] text-brand-gold">
+        <p className="mt-3 text-xl font-semibold uppercase tracking-[0.28em] text-brand-cream">
           Care Centre
         </p>
+        <p className="mt-1 text-base uppercase tracking-[0.34em] text-cream-dim">Portishead</p>
       </div>
     );
   }
@@ -36,9 +34,9 @@ export function BrandLogo({ className = "" }: { className?: string }) {
   return (
     <Image
       src="/logo.png"
-      alt="Harbour Care Centre"
-      width={900}
-      height={875}
+      alt="Harbour Care Centre, Portishead"
+      width={1053}
+      height={1024}
       priority
       onError={() => setFailed(true)}
       // Both dimensions auto so the caller's max-width and max-height each act
