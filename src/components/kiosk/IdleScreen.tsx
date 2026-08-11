@@ -6,29 +6,34 @@ import { formatClockDate, formatClockTime, useClock } from "@/hooks/useClock";
 /**
  * The screen the tablet shows all day.
  *
- * One centred column rather than bands pushed to the edges: logo, clock and
- * prompt read as a single unit, with the whole block optically centred. The
- * clock uses tabular figures so the digits do not jitter on each tick, and a
- * fixed-height line reserves space for the date so nothing shifts on the first
- * render after hydration.
+ * Three blocks — identity, time, and the thing we want you to do — separated by
+ * explicit margins rather than one uniform gap. A single gap gives every
+ * relationship the same weight; here the call to action needs to read as its
+ * own thing rather than as a fourth line of the clock.
+ *
+ * The whole stack stays optically centred. The logo is capped by height as
+ * well as width so a short viewport shrinks it rather than pushing the prompt
+ * off the bottom, and the date line reserves its height so nothing shifts on
+ * the first tick after hydration.
  */
 export function IdleScreen() {
   const now = useClock();
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-8 bg-kiosk-canvas px-6 py-8 text-center sm:gap-10">
-      <BrandLogo className="max-w-[min(340px,72vw)]" />
+    <div className="flex h-full flex-col items-center justify-center bg-kiosk-canvas px-6 py-6 text-center">
+      <BrandLogo className="max-h-[30vh] max-w-[min(340px,72vw)]" />
 
-      <div className="flex flex-col items-center gap-1">
+      <div className="mt-8 flex flex-col items-center gap-1 sm:mt-10">
         <p className="text-7xl font-bold leading-none tabular-nums text-kiosk-ink sm:text-8xl">
-          {now ? formatClockTime(now) : " "}
+          {now ? formatClockTime(now) : " "}
         </p>
         <p className="min-h-7 text-lg font-medium text-kiosk-muted sm:text-xl">
           {now ? formatClockDate(now) : ""}
         </p>
       </div>
 
-      <div className="flex flex-col items-center gap-5">
+      {/* Held well clear of the clock so it reads as an instruction, not a caption. */}
+      <div className="mt-12 flex flex-col items-center gap-9 sm:mt-16">
         <FobPrompt />
         <h1 className="max-w-2xl text-balance text-3xl font-semibold leading-snug text-kiosk-ink sm:text-4xl">
           Please tap your keyfob to sign in or out.

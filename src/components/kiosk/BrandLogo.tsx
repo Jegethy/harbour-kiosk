@@ -41,7 +41,10 @@ export function BrandLogo({ className = "" }: { className?: string }) {
       height={875}
       priority
       onError={() => setFailed(true)}
-      className={`h-auto w-full object-contain ${className}`}
+      // Both dimensions auto so the caller's max-width and max-height each act
+      // as a ceiling and the browser scales to fit whichever binds first,
+      // keeping the aspect ratio either way.
+      className={`h-auto w-auto object-contain ${className}`}
     />
   );
 }

@@ -8,8 +8,9 @@
  * bg-brand-primary, text-brand-primary, border-brand-primary and so on.
  *
  * Measured contrast for the pairs actually in use:
- *   slate on canvas   #1E293B on #FAF9F6 -> 13.9:1 (AAA)
- *   muted on canvas   #55606F on #FAF9F6 ->  6.0:1 (AA)
+ *   slate on canvas   #1E293B on #F4EFE6 -> 12.8:1 (AAA)
+ *   muted on canvas   #55606F on #F4EFE6 ->  5.6:1 (AA)
+ *   red on canvas     #C8102E on #F4EFE6 ->  5.1:1 (AA)
  *   cream on maroon   #F7E8D0 on #882425 ->  7.4:1 (AAA)
  *   maroon on cream   #882425 on #F7E8D0 ->  7.4:1 (AAA)
  *   white on red      #FFFFFF on #C8102E ->  5.9:1 (AA)
@@ -25,8 +26,9 @@
   --color-neutral-dark: #1f1f1f;
   --color-neutral-light: #faf7f2;
 
-  /* The idle kiosk: warm off-white with a deep slate for text. */
-  --color-kiosk-canvas: #faf9f6;
+  /* The idle kiosk: a warm cream rather than white. This screen is lit 24/7 in
+     a lobby, so glare matters more than crispness. */
+  --color-kiosk-canvas: #f4efe6;
   --color-kiosk-ink: #1e293b;
   --color-kiosk-muted: #55606f;
 
