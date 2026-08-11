@@ -29,12 +29,11 @@ Work through this before the kiosk goes live in the lobby.
 - [ ] **Disable public signups** in Supabase → Authentication → Providers.
       Otherwise anyone can create themselves a staff account at `/admin`.
 - [ ] **Create staff accounts by invite** in the Supabase dashboard.
-- [ ] **Do NOT set `KIOSK_DEVICE_TOKEN` yet — it will break the kiosk.**
-      The server-side check exists, but the tablet has no way to send the
-      header: the kiosk fetches run in the browser, so the token would have to
-      be a `NEXT_PUBLIC_` value sitting in the JS bundle, which defeats it.
-      Setting the variable today means every fob tap gets a 401.
-      See "Open security item" below.
+- [ ] **Set `KIOSK_SETUP_TOKEN`** to a long random value:
+      `node -e "console.log(require('crypto').randomBytes(24).toString('base64url'))"`.
+      Required — kiosk endpoints refuse every request without it in production.
+- [ ] **Pair the tablet** by opening `/kiosk/setup` on it once and entering that
+      code. `/kiosk` redirects there automatically until it is paired.
 - [ ] **Pin the fob code width.** Open `/kiosk/diagnostics`, tap several fobs,
       note the exact character count, then set `minLength` and `maxLength` in
       `DEFAULT_SCAN_CONFIG` (`src/lib/kiosk/scanner.ts`) to that value. A
@@ -85,23 +84,45 @@ Work through this before the kiosk goes live in the lobby.
 - [ ] Agree a retention period for visitor records with whoever owns data
       protection, and schedule deletion accordingly. Nothing prunes old rows today.
 
-## Open security item
+## Public hosting (Cloudflare Tunnel)
 
-`/api/kiosk/scan` is currently **unauthenticated**.
-Anyone who can reach the app can enumerate valid fob IDs (an unknown fob answers
-differently from a known one) and sign people in and out at will, which corrupts
-the fire roster.
+Deployed on a Windows server at home, published to `kiosk.harbourcare.co.uk`
+through a Cloudflare Tunnel. Every route is reachable from the open internet, so
+the checks below are not optional.
 
-If the app is only reachable on the care home's internal network, that is a
-reasonable interim position. If it is on the public internet, it needs closing
-before go-live. Options, cheapest first:
+- [ ] **Confirm `/api/kiosk/scan` is closed.** From a machine that has never been
+      paired:
+      ```
+      curl -si https://kiosk.harbourcare.co.uk/api/kiosk/scan \
+        -H "Content-Type: application/json" -d '{"fob_id":"1234567890"}' | head -1
+      ```
+      Must be `401`. A `200` means anyone with the URL can alter the fire roster
+      and read visitor names back out of it.
+- [ ] **Put Cloudflare Access in front of `/admin`.** Free at this user count.
+      Supabase Auth stays as the layer behind it; the point is that the login
+      form is not reachable from the open internet at all.
+- [ ] **Rate-limit `/api/kiosk/pair` and `/admin/login`** at the Cloudflare edge.
+      The app limits pairing attempts in memory, but the edge is the better place.
+- [ ] **The tablet's browser must persist cookies.** Pairing stores an `httpOnly`
+      cookie; a kiosk browser set to clear data on exit will need re-pairing
+      after every reboot.
+- [ ] **Never expose the service-role key to the tunnel.** Server-side only, and
+      never in a `NEXT_PUBLIC_` variable.
+- [ ] Run the app as a Windows service so it survives reboot, and make sure the
+      tunnel and the app come back in the right order.
 
-1. **Restrict by network** at the host or reverse proxy — an IP allowlist, or
-   keep the deployment off the public internet entirely.
-2. **Device handshake** — a one-time setup page where staff enter the token,
-   which the server exchanges for an `httpOnly` cookie. The token never reaches
-   client JavaScript, and the tablet stays authorised across restarts. Roughly
-   an hour's work; ask and it will be built.
+Security headers (`frame-ancestors 'none'`, `nosniff`, `Referrer-Policy`,
+`Permissions-Policy`) are set in `next.config.ts`. There is deliberately **no
+full Content-Security-Policy** yet: Next's inline bootstrap needs nonce
+plumbing, and a half-configured CSP that silently breaks the kiosk is worse than
+none. Worth adding as a follow-up, with the kiosk retested afterwards.
+
+### Data protection
+
+Visitor names, the resident they are visiting, and car registrations are personal
+data, and the roster records who was in the building and when. Now that this is
+internet-facing, agree a retention period with whoever owns data protection for
+the home, and check the Supabase project region suits your obligations.
 
 ## Known gaps
 

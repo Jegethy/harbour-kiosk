@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { cleanField, deviceTokenRejection } from "@/lib/kiosk/guard";
+import { cleanField, deviceRejection } from "@/lib/kiosk/guard";
 import { isScanOutcome, type ScanOutcome } from "@/lib/kiosk/outcomes";
 
 export const runtime = "nodejs";
@@ -12,7 +12,9 @@ const UNAVAILABLE: ScanOutcome = {
 };
 
 export async function POST(request: Request) {
-  const rejected = deviceTokenRejection(request);
+  // Publicly reachable write endpoint: this is the boundary that stops anyone
+  // with the URL altering the fire roster, or mining it for visitor names.
+  const rejected = await deviceRejection();
   if (rejected) return rejected;
 
   let body: unknown;

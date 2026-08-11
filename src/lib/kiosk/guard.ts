@@ -1,29 +1,79 @@
 import "server-only";
 
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import {
+  DEVICE_COOKIE,
+  isPairingConfigured,
+  isPairingRequired,
+  verifyDeviceToken,
+} from "@/lib/kiosk/device";
+import { createClient } from "@/lib/supabase/server";
 
 /**
- * Optional shared secret for the kiosk endpoints. When KIOSK_DEVICE_TOKEN is
- * set, the tablet must send it as x-kiosk-token.
+ * Is this request coming from a paired kiosk device?
  *
- * Without it these endpoints are open to anyone who can reach the app: they
- * could enumerate valid fob IDs (an unknown fob answers differently from a
- * known one) and sign people in and out at will, which corrupts the fire
- * roster. Left unenforced when unset so local development needs no setup.
- *
- * Returns a 401 response to return early with, or null to continue.
+ * Reads the httpOnly cookie set by /api/kiosk/pair. When pairing is not
+ * required (development with no token configured) everything is allowed.
  */
-export function deviceTokenRejection(request: Request): NextResponse | null {
-  const expected = process.env.KIOSK_DEVICE_TOKEN;
-  if (!expected) return null;
+export async function isPairedDevice(): Promise<boolean> {
+  if (!isPairingRequired()) return true;
+  if (!isPairingConfigured()) return false;
 
-  if (request.headers.get("x-kiosk-token") !== expected) {
+  const store = await cookies();
+  return verifyDeviceToken(store.get(DEVICE_COOKIE)?.value);
+}
+
+async function isStaffSession(): Promise<boolean> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    return Boolean(user);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Guard for kiosk API routes. Returns a response to return early with, or null
+ * to continue.
+ *
+ * The two failure modes are reported separately on purpose: an unpaired tablet
+ * needs someone to walk over and run setup, whereas a missing server token is
+ * a deployment fault. Conflating them sends staff hunting for the wrong thing.
+ */
+export async function deviceRejection(): Promise<NextResponse | null> {
+  if (!isPairingRequired()) return null;
+
+  if (!isPairingConfigured()) {
+    console.error(
+      "[kiosk] KIOSK_SETUP_TOKEN is not set. Refusing kiosk requests rather than serving an open endpoint.",
+    );
     return NextResponse.json(
-      { outcome: "ERROR", message: "Unauthorised device." },
-      { status: 401 },
+      {
+        outcome: "ERROR",
+        message: "Check-in is not configured on the server. Please see reception.",
+      },
+      { status: 503 },
     );
   }
-  return null;
+
+  if (await isPairedDevice()) return null;
+
+  // A signed-in staff member is a stronger credential than a paired tablet, so
+  // accept that too. Without this, the diagnostics harness could not post a
+  // test scan from a laptop, which is where support work actually happens.
+  if (await isStaffSession()) return null;
+
+  return NextResponse.json(
+    {
+      outcome: "ERROR",
+      message: "This tablet is not set up for check-in. Please see reception.",
+    },
+    { status: 401 },
+  );
 }
 
 /** Trim a submitted string, or null if it is absent/blank/over-long. */

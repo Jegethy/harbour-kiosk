@@ -50,12 +50,19 @@ or a moved route can silently drop its coverage, and server actions are
 reachable by anyone who can post to their endpoint. So every admin page and
 every action calls `requireStaff()` for itself.
 
-The kiosk endpoints under `/api/kiosk` are **not yet authenticated**. A
-`KIOSK_DEVICE_TOKEN` check exists server-side, but the tablet has no way to send
-the header — the kiosk fetches run in the browser, so the token would have to
-ship in the JS bundle. **Setting that variable today makes every fob tap fail
-with a 401.** See the open security item in [DEPLOYMENT.md](DEPLOYMENT.md) for
-the two ways to close this properly.
+The kiosk endpoints are protected by **device pairing**. The tablet is set up
+once at `/kiosk/setup` with `KIOSK_SETUP_TOKEN`, and the server returns a
+long-lived `httpOnly` cookie that the browser sends automatically — the secret
+never reaches client JavaScript. `/api/kiosk/scan` requires it, or a staff
+session.
+
+The cookie is an HMAC-signed token rather than a database row, keyed on
+`KIOSK_SETUP_TOKEN` itself. Rotating that variable revokes every paired device
+at once, which is the revocation mechanism.
+
+Pairing **fails closed in production**: if `KIOSK_SETUP_TOKEN` is missing, kiosk
+endpoints return 503 rather than quietly serving an open endpoint. In
+development an unset token leaves the kiosk open so a fresh clone just runs.
 
 ## Fob capture
 
