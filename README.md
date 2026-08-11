@@ -27,6 +27,20 @@ SQL Editor, or with `supabase db push`. It is idempotent.
 In Supabase Auth settings, **disable public signups** — `/admin` accounts should
 be created by invite only.
 
+### Reaching the dev server through the tunnel
+
+Next blocks cross-origin requests to dev-only assets, so `next dev` reached via
+`kiosk.harbourcare.co.uk` refuses the client bundle and pages never hydrate.
+`allowedDevOrigins` in `next.config.ts` permits that hostname; override with
+`ALLOWED_DEV_ORIGINS` (comma-separated) for any other. It affects `next dev`
+only — `next start` serves no dev resources.
+
+For realistic tunnel testing prefer a production build:
+
+```bash
+npm run build && npm start
+```
+
 ## Scripts
 
 | Command | Purpose |

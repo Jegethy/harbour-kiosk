@@ -23,7 +23,22 @@ const securityHeaders = [
   },
 ];
 
+/**
+ * Hostnames allowed to reach dev-only assets (HMR, the error overlay).
+ *
+ * Next blocks cross-origin dev requests by default, so reaching `next dev`
+ * through the Cloudflare Tunnel gets the client bundle refused and the page
+ * never hydrates. Development only — `next start` serves no dev resources, so
+ * this has no effect on production.
+ */
+const allowedDevOrigins = (process.env.ALLOWED_DEV_ORIGINS ?? "kiosk.harbourcare.co.uk")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 const nextConfig: NextConfig = {
+  allowedDevOrigins,
+
   // The tunnel terminates TLS, so a leaked version banner helps nobody.
   poweredByHeader: false,
 

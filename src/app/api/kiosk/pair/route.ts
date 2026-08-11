@@ -50,39 +50,62 @@ function clientKey(request: Request): string {
   );
 }
 
-/** Exchange the setup token for a long-lived device cookie. */
+/**
+ * Relative Location on purpose.
+ *
+ * NextResponse.redirect() needs an absolute URL, and behind the tunnel
+ * request.url is the internal origin (http://localhost:3000) — sending the
+ * tablet there would strand it. A relative Location is valid HTTP and resolves
+ * against whatever hostname the browser actually used.
+ */
+function seeOther(path: string): NextResponse {
+  return new NextResponse(null, { status: 303, headers: { Location: path } });
+}
+
+/**
+ * Exchange the setup token for a long-lived device cookie.
+ *
+ * Answers both a plain HTML form post (redirects) and JSON (returns JSON), so
+ * pairing works with no client-side JavaScript at all. That matters: this is
+ * the one screen that has to work on an unfamiliar tablet, and a form that
+ * silently does nothing when hydration fails leaves staff with no way in and
+ * nothing to read.
+ */
 export async function POST(request: Request) {
+  const contentType = request.headers.get("content-type") ?? "";
+  const isFormPost = contentType.includes("application/x-www-form-urlencoded");
+
+  const fail = (status: number, code: string, message: string) =>
+    isFormPost
+      ? seeOther(`/kiosk/setup?error=${code}`)
+      : NextResponse.json({ ok: false, message }, { status });
+
   if (!isPairingConfigured()) {
-    return NextResponse.json(
-      { ok: false, message: "Pairing is not configured on the server." },
-      { status: 503 },
-    );
+    return fail(503, "unconfigured", "Pairing is not configured on the server.");
   }
 
   if (rateLimited(clientKey(request))) {
-    return NextResponse.json(
-      { ok: false, message: "Too many attempts. Please wait 15 minutes and try again." },
-      { status: 429 },
-    );
+    return fail(429, "rate", "Too many attempts. Please wait 15 minutes and try again.");
   }
 
-  let body: unknown;
+  let token: unknown;
   try {
-    body = await request.json();
+    token = isFormPost
+      ? (await request.formData()).get("token")
+      : ((await request.json()) as { token?: unknown } | null)?.token;
   } catch {
-    return NextResponse.json({ ok: false, message: "Invalid request." }, { status: 400 });
+    return fail(400, "invalid", "Invalid request.");
   }
 
-  const token = (body as { token?: unknown } | null)?.token;
-
-  if (typeof token !== "string" || !matchesSetupToken(token)) {
-    return NextResponse.json(
-      { ok: false, message: "That setup code was not recognised." },
-      { status: 401 },
-    );
+  if (typeof token !== "string" || token.trim() === "") {
+    return fail(400, "missing", "Please enter the setup code.");
   }
 
-  const response = NextResponse.json({ ok: true });
+  if (!matchesSetupToken(token.trim())) {
+    return fail(401, "code", "That setup code was not recognised.");
+  }
+
+  const response = isFormPost ? seeOther("/kiosk") : NextResponse.json({ ok: true });
 
   response.cookies.set(DEVICE_COOKIE, mintDeviceToken(), {
     httpOnly: true,
