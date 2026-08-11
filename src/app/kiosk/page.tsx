@@ -5,7 +5,9 @@ import { FobCaptureInput } from "@/components/kiosk/FobCaptureInput";
 import { IdleScreen } from "@/components/kiosk/IdleScreen";
 import { NoticeScreen } from "@/components/kiosk/NoticeScreen";
 import { RegistrationScreen } from "@/components/kiosk/RegistrationScreen";
+import { OfflineScreen } from "@/components/kiosk/OfflineScreen";
 import { ResultScreen, type KioskResult } from "@/components/kiosk/ResultScreen";
+import { useConnectivity } from "@/hooks/useConnectivity";
 import { useFobScanner } from "@/hooks/useFobScanner";
 import { submitScan } from "@/lib/kiosk/api";
 
@@ -21,6 +23,25 @@ type View =
   | { name: "error"; message: string };
 
 /**
+ * Connectivity gate.
+ *
+ * Unmounting the whole flow while offline is the recovery mechanism: every
+ * in-progress screen and any half-typed registration goes with it, so
+ * restoring the connection brings back a clean idle screen on its own. Nobody
+ * has to touch the tablet, and there is no reset path to get wrong.
+ *
+ * It also stops the scanner dead, which is the point — a tap that cannot be
+ * recorded should not be quietly swallowed.
+ */
+export default function KioskPage() {
+  const connectivity = useConnectivity();
+
+  if (connectivity === "offline") return <OfflineScreen />;
+
+  return <KioskFlow />;
+}
+
+/**
  * The kiosk state machine.
  *
  * The scanner stays armed on the idle, result and error screens, so a second
@@ -29,7 +50,7 @@ type View =
  * request is in flight (nothing sensible to do with a second scan) and during
  * registration (where a stray tap would throw away typed details).
  */
-export default function KioskPage() {
+function KioskFlow() {
   const [view, setView] = useState<View>({ name: "idle" });
 
   const handleScan = useCallback(async (code: string) => {

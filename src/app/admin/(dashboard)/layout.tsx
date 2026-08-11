@@ -9,7 +9,8 @@ export default async function DashboardLayout({ children }: LayoutProps<"/admin"
 
   return (
     <div className="min-h-dvh bg-neutral-light">
-      <header className="bg-brand-primary">
+      {/* Navigation and sign-out have no place on a printed evacuation list. */}
+      <header className="bg-brand-primary print:hidden">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-6">
           <p className="text-lg font-bold text-brand-cream">Harbour Care Centre</p>
 
@@ -29,7 +30,9 @@ export default async function DashboardLayout({ children }: LayoutProps<"/admin"
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">{children}</main>
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 print:max-w-none print:p-0">
+        {children}
+      </main>
     </div>
   );
 }

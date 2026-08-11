@@ -88,6 +88,64 @@ body[data-kiosk] * {
   }
 }
 
+/*
+ * Print — the evacuation list.
+ *
+ * This output may be carried out of a burning building and read in poor light
+ * by someone who did not generate it, so everything decorative is stripped:
+ * brand colours, tints, shadows and rounded panels all go, leaving black text
+ * and ruled borders on white.
+ */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  *,
+  *::before,
+  *::after {
+    background: transparent !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    border-color: #000 !important;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  /* Repeat the column headings on every sheet of a long roster. */
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  th,
+  td {
+    border: 1px solid #000 !important;
+    padding: 6pt 8pt !important;
+    font-size: 11pt !important;
+    text-align: left;
+  }
+
+  th {
+    font-weight: 700;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

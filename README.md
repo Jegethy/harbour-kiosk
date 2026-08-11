@@ -50,10 +50,12 @@ or a moved route can silently drop its coverage, and server actions are
 reachable by anyone who can post to their endpoint. So every admin page and
 every action calls `requireStaff()` for itself.
 
-Set `KIOSK_DEVICE_TOKEN` in the environment to require an `x-kiosk-token`
-header on kiosk endpoints. Without it those endpoints are reachable by anyone
-who can reach the app, who could then enumerate fob IDs and sign people in and
-out — which corrupts the fire roster. Leave it unset in development.
+The kiosk endpoints under `/api/kiosk` are **not yet authenticated**. A
+`KIOSK_DEVICE_TOKEN` check exists server-side, but the tablet has no way to send
+the header — the kiosk fetches run in the browser, so the token would have to
+ship in the JS bundle. **Setting that variable today makes every fob tap fail
+with a 401.** See the open security item in [DEPLOYMENT.md](DEPLOYMENT.md) for
+the two ways to close this properly.
 
 ## Fob capture
 

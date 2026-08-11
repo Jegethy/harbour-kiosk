@@ -15,10 +15,12 @@ Work through this before the kiosk goes live in the lobby.
 - [ ] **Disable public signups** in Supabase → Authentication → Providers.
       Otherwise anyone can create themselves a staff account at `/admin`.
 - [ ] **Create staff accounts by invite** in the Supabase dashboard.
-- [ ] **Set `KIOSK_DEVICE_TOKEN`** in the environment and on the tablet.
-      Without it, `/api/kiosk/scan` and `/api/kiosk/register` are reachable by
-      anyone who can reach the app: they could enumerate valid fob IDs and sign
-      people in and out, which corrupts the fire roster.
+- [ ] **Do NOT set `KIOSK_DEVICE_TOKEN` yet — it will break the kiosk.**
+      The server-side check exists, but the tablet has no way to send the
+      header: the kiosk fetches run in the browser, so the token would have to
+      be a `NEXT_PUBLIC_` value sitting in the JS bundle, which defeats it.
+      Setting the variable today means every fob tap gets a 401.
+      See "Open security item" below.
 - [ ] **Pin the fob code width.** Open `/kiosk/diagnostics`, tap several fobs,
       note the exact character count, then set `minLength` and `maxLength` in
       `DEFAULT_SCAN_CONFIG` (`src/lib/kiosk/scanner.ts`) to that value. A
@@ -64,10 +66,29 @@ Work through this before the kiosk goes live in the lobby.
 - [ ] Agree a retention period for visitor records with whoever owns data
       protection, and schedule deletion accordingly. Nothing prunes old rows today.
 
+## Open security item
+
+`/api/kiosk/scan` and `/api/kiosk/register` are currently **unauthenticated**.
+Anyone who can reach the app can enumerate valid fob IDs (an unknown fob answers
+differently from a known one) and sign people in and out at will, which corrupts
+the fire roster.
+
+If the app is only reachable on the care home's internal network, that is a
+reasonable interim position. If it is on the public internet, it needs closing
+before go-live. Options, cheapest first:
+
+1. **Restrict by network** at the host or reverse proxy — an IP allowlist, or
+   keep the deployment off the public internet entirely.
+2. **Device handshake** — a one-time setup page where staff enter the token,
+   which the server exchanges for an `httpOnly` cookie. The token never reaches
+   client JavaScript, and the tablet stays authorised across restarts. Roughly
+   an hour's work; ask and it will be built.
+
 ## Known gaps
 
-- The fire roster is screen-only. There is no print or export, so an evacuation
-  depends on someone carrying the tablet or a phone. Worth deciding whether that
-  is acceptable before go-live.
-- Registration requires the network. A fob tap during an outage cannot be
-  recorded and is not queued for later.
+- Registration requires the network. This is deliberate: a tap recorded locally
+  and synced later could contradict the fire roster, and a roster that is
+  confidently wrong is worse than one that is honestly unavailable. The kiosk
+  detects the outage and shows "System offline — please see reception", then
+  recovers on its own.
+- Nothing prunes old visitor records; see the retention item above.

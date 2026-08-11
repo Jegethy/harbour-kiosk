@@ -1,6 +1,7 @@
 "use client";
 
 import { NoticeScreen } from "@/components/kiosk/NoticeScreen";
+import { OfflineScreen } from "@/components/kiosk/OfflineScreen";
 import { RegistrationScreen } from "@/components/kiosk/RegistrationScreen";
 import { ResultScreen } from "@/components/kiosk/ResultScreen";
 
@@ -48,6 +49,10 @@ export default function PreviewPage() {
 
       <Frame label="Waiting on the database">
         <NoticeScreen tone="busy" title="One moment…" />
+      </Frame>
+
+      <Frame label="Offline — network or database unreachable">
+        <OfflineScreen />
       </Frame>
     </div>
   );

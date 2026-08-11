@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { formatClockTime, useClock } from "@/hooks/useClock";
+import { formatClockDate, formatClockTime, useClock } from "@/hooks/useClock";
 import { createClient } from "@/lib/supabase/client";
 import type { LiveRosterRow } from "@/lib/types/database";
 
@@ -82,7 +82,7 @@ export function LiveRoster({
 
   return (
     <section>
-      <header className="mb-4 flex flex-wrap items-end justify-between gap-3">
+      <header className="mb-4 flex flex-wrap items-end justify-between gap-3 print:hidden">
         <div>
           <h1 className="text-2xl font-bold text-brand-primary sm:text-3xl">
             Live roster — in the building
@@ -97,13 +97,42 @@ export function LiveRoster({
           <span className="rounded-lg bg-brand-primary px-4 py-2 text-xl font-bold text-brand-cream tabular-nums">
             {rows.length}
           </span>
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="flex items-center gap-2 rounded-lg bg-brand-accent px-5 py-2.5 text-base font-bold text-brand-cream shadow-sm transition-colors hover:bg-brand-primary"
+          >
+            <PrinterIcon />
+            Print evacuation list
+          </button>
         </div>
       </header>
+
+      {/* Paper-only masthead. Whoever reads this sheet will not have the screen
+          in front of them, so it has to say what it is and how current it is. */}
+      <div className="hidden print:mb-4 print:block">
+        <h1 className="text-xl font-bold">Harbour Care Centre — Evacuation List</h1>
+        <p className="mt-1 text-sm">
+          <strong>{rows.length}</strong>{" "}
+          {rows.length === 1 ? "person" : "people"} signed in
+          {now ? (
+            <> · Printed {formatClockTime(now)} on {formatClockDate(now)}</>
+          ) : null}
+        </p>
+        {connection !== "live" ? (
+          <p className="mt-1 text-sm">
+            <strong>
+              Warning: the live connection was lost. This list may be out of date
+              {refreshedAt ? ` — last confirmed ${formatClockTime(new Date(refreshedAt))}` : ""}.
+            </strong>
+          </p>
+        ) : null}
+      </div>
 
       {error ? (
         <p
           role="alert"
-          className="mb-4 rounded-lg border-2 border-brand-accent bg-brand-accent/10 px-4 py-3 text-sm font-semibold text-brand-primary"
+          className="mb-4 rounded-lg border-2 border-brand-accent bg-brand-accent/10 px-4 py-3 text-sm font-semibold text-brand-primary print:hidden"
         >
           {error}
         </p>
@@ -114,14 +143,15 @@ export function LiveRoster({
           Nobody is signed in at the moment.
         </p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-neutral-dark/10 bg-white shadow-sm">
-          <table className="w-full min-w-[36rem] border-collapse text-left">
+        <div className="overflow-x-auto rounded-xl border border-neutral-dark/10 bg-white shadow-sm print:overflow-visible print:rounded-none print:border-0">
+          <table className="w-full min-w-[36rem] border-collapse text-left print:min-w-0">
             <thead>
               <tr className="border-b-2 border-neutral-dark/10 bg-neutral-light">
                 <Th>Name</Th>
                 <Th>Visiting</Th>
                 <Th>Signed in</Th>
-                <Th>Here for</Th>
+                {/* Duration is screen-only; the paper list is names, who, and when. */}
+                <Th className="print:hidden">Here for</Th>
               </tr>
             </thead>
             <tbody>
@@ -143,7 +173,7 @@ export function LiveRoster({
                   <td className="px-4 py-3 text-lg tabular-nums text-neutral-dark">
                     {formatClockTime(new Date(row.check_in_time))}
                   </td>
-                  <td className="px-4 py-3 text-lg tabular-nums text-neutral-dark/70">
+                  <td className="px-4 py-3 text-lg tabular-nums text-neutral-dark/70 print:hidden">
                     {now ? formatDuration(row.check_in_time, now) : "—"}
                   </td>
                 </tr>
@@ -156,11 +186,27 @@ export function LiveRoster({
   );
 }
 
-function Th({ children }: { children: React.ReactNode }) {
+function Th({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <th className="px-4 py-3 text-sm font-bold uppercase tracking-wide text-neutral-dark/70">
+    <th
+      className={`px-4 py-3 text-sm font-bold uppercase tracking-wide text-neutral-dark/70 ${className}`}
+    >
       {children}
     </th>
+  );
+}
+
+function PrinterIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="h-5 w-5 fill-none stroke-current stroke-2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M6 14h12v7H6z" />
+    </svg>
   );
 }
 
