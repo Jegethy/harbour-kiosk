@@ -105,7 +105,10 @@ function LeaveIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5M9 17l5-5-5-5M14 12H3" />
+      {/* Door on the left, arrow leaving to the right. The mirrored version of
+          this path is the "sign in" glyph — easy to reach for by mistake, and
+          it points the wrong way on a goodbye screen. */}
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
     </svg>
   );
 }
