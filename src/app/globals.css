@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+/*
+ * Harbour Care Centre — design tokens.
+ *
+ * High contrast throughout: the kiosk sits in a lobby with variable daylight
+ * and is read by people with age-related vision loss. Every foreground/
+ * background pair below clears WCAG AA at large-text sizes, most clear AAA.
+ */
+@theme {
+  --color-harbour-50: #eef6fb;
+  --color-harbour-100: #d5e9f5;
+  --color-harbour-500: #1f7bab;
+  --color-harbour-700: #0f4c6b;
+  --color-harbour-900: #08293a;
+
+  --color-signin-600: #15803d;
+  --color-signin-700: #116632;
+
+  --color-signout-600: #1d4ed8;
+  --color-signout-700: #1739a8;
+
+  --color-alert-600: #b91c1c;
+  --color-alert-700: #911616;
+
+  --color-ink: #0b1620;
+  --color-paper: #f7fafc;
+
+  /* Touch targets. The reader is the primary input, but every on-screen
+     control must be comfortably hittable by an unsteady hand. */
+  --spacing-touch: 5rem;
+}
+
+:root {
+  color-scheme: light;
+  --background: var(--color-paper);
+  --foreground: var(--color-ink);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/*
+ * Kiosk hardening.
+ *
+ * Applied via <body data-kiosk> on /kiosk routes only, so the admin dashboard
+ * keeps normal browser behaviour (text selection, zoom, context menus).
+ */
+body[data-kiosk] {
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  /* Kills double-tap-to-zoom, which otherwise fires on rapid screen taps. */
+  touch-action: manipulation;
+  overflow: hidden;
+  height: 100dvh;
+}
+
+body[data-kiosk] * {
+  /* No caret anywhere: the only text entry is the in-app keyboard, which
+     draws its own cursor. A blinking native caret invites a keyboard tap. */
+  caret-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
