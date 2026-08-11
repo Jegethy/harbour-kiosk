@@ -13,13 +13,13 @@
  * verifies the two still agree after any change to either.
  *
  * Measured contrast for the pairs actually in use:
- *   cream on maroon   #F7E8D0 on #7E1C1D -> 8.4:1 (AAA)
- *   dim on maroon     #D9C6AB on #7E1C1D -> 6.1:1 (AA)
- *   maroon on cream   #7E1C1D on #F7E8D0 -> 8.4:1 (AAA)
+ *   cream on maroon   #F7E8D0 on #7C1B1B -> 8.6:1 (AAA)
+ *   dim on maroon     #D9C6AB on #7C1B1B -> 6.2:1 (AA)
+ *   maroon on cream   #7C1B1B on #F7E8D0 -> 8.6:1 (AAA)
  *   red on cream      #C8102E on #F7E8D0 -> 4.9:1 (AA large)
  *   white on red      #FFFFFF on #C8102E -> 5.9:1 (AA)
  *
- *   red on maroon     #C8102E on #7E1C1D -> 1.7:1 (FAILS)
+ *   red on maroon     #C8102E on #7C1B1B -> 1.8:1 (FAILS)
  *
  * That last pair is why the keyfob badge is a cream disc holding a red icon
  * rather than a red disc: brand red on brand maroon is nearly invisible, so a
@@ -29,7 +29,7 @@
  * badges, icons and full-bleed alerts; never set body copy in it.
  */
 @theme {
-  --color-brand-primary: #7e1c1d;
+  --color-brand-primary: #7c1b1b;
   --color-brand-cream: #f7e8d0;
   --color-brand-accent: #c8102e;
   --color-neutral-dark: #1f1f1f;

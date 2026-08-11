@@ -38,6 +38,14 @@ export function BrandLogo({ className = "" }: { className?: string }) {
       width={1053}
       height={1024}
       priority
+      /*
+       * Served as-is. next/image would re-encode this to lossy WebP — measured
+       * at 646KB down to 8KB — and a lossy pass over a large flat maroon field
+       * shifts the colour and adds blocking artifacts, which reads as a
+       * mismatched square around the logo. Optimisation can come back once the
+       * artwork has a transparent background and no colour to match.
+       */
+      unoptimized
       onError={() => setFailed(true)}
       // Both dimensions auto so the caller's max-width and max-height each act
       // as a ceiling and the browser scales to fit whichever binds first,
