@@ -2,8 +2,16 @@
 
 A visitor sign-in/sign-out system built around a 125kHz RFID fob reader.
 
-- `/kiosk` — unauthenticated, runs full-screen on a lobby tablet in kiosk mode.
-- `/admin` — staff-only, Supabase Auth. Live fire roster and visitor management.
+| Route | Access | Purpose |
+| --- | --- | --- |
+| `/kiosk` | Open | Idle screen, sign in/out confirmations, first-time registration |
+| `/kiosk/diagnostics` | Open | Reader validation: keystroke timings, buffer decisions, DB round trip |
+| `/kiosk/preview` | Open | Design walkthrough with stand-in data — **delete before go-live** |
+| `/admin` | Staff | Live fire roster, updated over realtime |
+| `/admin/visitors` | Staff | All registered visitors, with Unlink Fob |
+| `/admin/login` | Open | Supabase Auth sign in |
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) before going live.
 
 ## Setup
 
@@ -34,6 +42,13 @@ The tablet sits in a public lobby, so it holds no database credentials. RLS
 denies `anon` every table. Kiosk writes go through server route handlers under
 `/api/kiosk` that use the service-role key, exposing exactly the operations a
 kiosk needs. Staff (`authenticated`) get full access for the dashboard.
+
+Admin auth is enforced in two places. `src/proxy.ts` (Next 16 renamed the
+`middleware` convention to `proxy`) refreshes the session and handles the
+signed-in/signed-out redirects, but it is not the boundary — a matcher change
+or a moved route can silently drop its coverage, and server actions are
+reachable by anyone who can post to their endpoint. So every admin page and
+every action calls `requireStaff()` for itself.
 
 Set `KIOSK_DEVICE_TOKEN` in the environment to require an `x-kiosk-token`
 header on kiosk endpoints. Without it those endpoints are reachable by anyone
