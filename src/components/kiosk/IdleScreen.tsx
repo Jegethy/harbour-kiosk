@@ -6,8 +6,7 @@ import { formatClockDate, formatClockTime, useClock } from "@/hooks/useClock";
 /**
  * The screen the tablet shows all day.
  *
- * Deep maroon, matched exactly to the logo's own background so the artwork
- * dissolves into the screen rather than sitting in a visible square.
+ * Deep maroon behind a transparent logo, so there is no background to match.
  *
  * Three blocks — identity, time, and the thing we want you to do — separated by
  * explicit margins rather than one uniform gap. A single gap gives every
@@ -24,9 +23,15 @@ export function IdleScreen() {
 
   return (
     <div className="flex h-full flex-col items-center justify-center bg-brand-primary px-6 py-6 text-center">
-      <BrandLogo className="max-h-[30vh] max-w-[min(340px,72vw)]" />
+      {/*
+        One width expression rather than max-width plus max-height: the wrapper
+        carries an aspect ratio, and capping both dimensions independently would
+        let a short viewport squash it. 29vh is the height cap expressed as
+        width, via the artwork's own ratio.
+      */}
+      <BrandLogo className="w-[min(260px,64vw,29vh)]" />
 
-      <div className="mt-8 flex flex-col items-center gap-1 sm:mt-10">
+      <div className="mt-10 flex flex-col items-center gap-1 sm:mt-12">
         <p className="text-7xl font-bold leading-none tabular-nums text-brand-cream sm:text-8xl">
           {now ? formatClockTime(now) : " "}
         </p>
@@ -36,7 +41,7 @@ export function IdleScreen() {
       </div>
 
       {/* Held well clear of the clock so it reads as an instruction, not a caption. */}
-      <div className="mt-12 flex flex-col items-center gap-9 sm:mt-16">
+      <div className="mt-14 flex flex-col items-center gap-9 sm:mt-20">
         <FobPrompt />
         <h1 className="max-w-2xl text-balance text-3xl font-semibold leading-snug text-brand-cream sm:text-4xl">
           Please tap your keyfob to sign in or out.

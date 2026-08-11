@@ -1,14 +1,14 @@
 /**
- * Validates public/logo.png against the idle screen.
+ * Validates the kiosk logo against the component that draws it.
  *
- * Four things have gone wrong with this asset now: it was missing, then it was
- * a JPEG under a .png name, then the artwork gained its own background that has
- * to match the canvas, and then next/image re-encoded that background into
- * something slightly different from the file on disk.
+ * Five things have gone wrong with this asset now: it was missing, it was a
+ * JPEG under a .png name, it gained a background that had to match the canvas,
+ * next/image re-encoded that background into something slightly different, and
+ * the export carried transparent margins that silently became layout.
  *
- * The last one is why this script samples the whole background rather than one
- * corner pixel, and why it reports the delivery path too. What matters is the
- * colour the browser paints, not the colour in the file.
+ * Each of those was invisible in the source file and obvious on the screen, so
+ * this checks the whole path: the file, how it is delivered, and whether the
+ * crop constants in BrandLogo still describe the artwork.
  *
  * Run after replacing the artwork:  npm run check:logo
  */
@@ -16,12 +16,13 @@
 import { readFileSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 
-const LOGO_PATH = "public/logo.png";
 const CSS_PATH = "src/app/globals.css";
 const LOGO_COMPONENT = "src/components/kiosk/BrandLogo.tsx";
 
 const PNG_SIGNATURE = "89504e470d0a1a0a";
 const CHANNELS: Record<number, number> = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 };
+/** Below this, a pixel is treated as transparent for bounding-box purposes. */
+const ALPHA_FLOOR = 8;
 
 interface Png {
   width: number;
@@ -66,7 +67,6 @@ function parsePng(buffer: Buffer): Png | null {
   }
 
   if (!header || idat.length === 0) return null;
-
   return { ...header, palette, ancillary, raw: inflateSync(Buffer.concat(idat)) };
 }
 
@@ -82,7 +82,6 @@ function paeth(a: number, b: number, c: number): number {
 /** Reverse the per-scanline filters into a flat pixel buffer. */
 function decode(png: Png): Buffer | null {
   if (png.bitDepth !== 8 || png.interlace !== 0) return null;
-
   const bpp = CHANNELS[png.colorType];
   if (!bpp) return null;
 
@@ -113,53 +112,87 @@ function decode(png: Png): Buffer | null {
       out[rowStart + x] = value & 0xff;
     }
   }
-
   return out;
 }
 
 const hex = (r: number, g: number, b: number) =>
   "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
 
-interface Sample {
-  r: number;
-  g: number;
-  b: number;
-  a: number;
+const hasAlpha = (colorType: number) => colorType === 6 || colorType === 4;
+
+function alphaAt(png: Png, pixels: Buffer, x: number, y: number): number {
+  if (!hasAlpha(png.colorType)) return 255;
+  const bpp = CHANNELS[png.colorType];
+  return pixels[y * png.width * bpp + x * bpp + bpp - 1];
 }
 
-/** Sample a ring just inside the border — the part that abuts the canvas. */
-function sampleBorder(png: Png, pixels: Buffer): Sample[] {
+/** The rectangle actually occupied by visible artwork. */
+function boundingBox(png: Png, pixels: Buffer) {
+  let minX = png.width;
+  let maxX = -1;
+  let minY = png.height;
+  let maxY = -1;
+
+  for (let y = 0; y < png.height; y += 1) {
+    for (let x = 0; x < png.width; x += 1) {
+      if (alphaAt(png, pixels, x, y) > ALPHA_FLOOR) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+
+  if (maxX < 0) return null;
+  return { x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1 };
+}
+
+/** Border ring — the part that abuts the canvas. */
+function sampleBorder(png: Png, pixels: Buffer) {
   const bpp = CHANNELS[png.colorType];
   const stride = png.width * bpp;
-  const inset = 1;
   const step = Math.max(1, Math.floor(Math.min(png.width, png.height) / 40));
-  const out: Sample[] = [];
+  const out: { r: number; g: number; b: number; a: number }[] = [];
 
   const at = (x: number, y: number) => {
     const i = y * stride + x * bpp;
-    if (png.colorType === 6) {
-      out.push({ r: pixels[i], g: pixels[i + 1], b: pixels[i + 2], a: pixels[i + 3] });
-    } else if (png.colorType === 2) {
-      out.push({ r: pixels[i], g: pixels[i + 1], b: pixels[i + 2], a: 255 });
-    } else if (png.colorType === 4) {
-      out.push({ r: pixels[i], g: pixels[i], b: pixels[i], a: pixels[i + 1] });
-    } else if (png.colorType === 0) {
-      out.push({ r: pixels[i], g: pixels[i], b: pixels[i], a: 255 });
-    } else if (png.colorType === 3 && png.palette) {
+    const alpha = hasAlpha(png.colorType) ? pixels[i + bpp - 1] : 255;
+    if (png.colorType === 3 && png.palette) {
       const p = pixels[i] * 3;
       out.push({ r: png.palette[p], g: png.palette[p + 1], b: png.palette[p + 2], a: 255 });
+    } else if (png.colorType === 0 || png.colorType === 4) {
+      out.push({ r: pixels[i], g: pixels[i], b: pixels[i], a: alpha });
+    } else {
+      out.push({ r: pixels[i], g: pixels[i + 1], b: pixels[i + 2], a: alpha });
     }
   };
 
-  for (let x = inset; x < png.width - inset; x += step) {
-    at(x, inset);
-    at(x, png.height - 1 - inset);
+  for (let x = 1; x < png.width - 1; x += step) {
+    at(x, 1);
+    at(x, png.height - 2);
   }
-  for (let y = inset; y < png.height - inset; y += step) {
-    at(inset, y);
-    at(png.width - 1 - inset, y);
+  for (let y = 1; y < png.height - 1; y += step) {
+    at(1, y);
+    at(png.width - 2, y);
   }
+  return out;
+}
 
+const component = readFileSync(LOGO_COMPONENT, "utf8");
+
+function componentSrc(): string {
+  const match = component.match(/src="(\/[^"]+)"/);
+  return match ? match[1] : "/logo.png";
+}
+
+function componentArtwork(): Record<string, number> | null {
+  const block = component.match(/const ARTWORK = \{([^}]*)\}/);
+  if (!block) return null;
+  const out: Record<string, number> = {};
+  for (const [, key, value] of block[1].matchAll(/(\w+):\s*(\d+)/g)) {
+    out[key] = Number(value);
+  }
   return out;
 }
 
@@ -170,109 +203,129 @@ function cssColour(): string | null {
   return match ? match[1].toLowerCase() : null;
 }
 
-function isUnoptimized(): boolean {
-  return /unoptimized/.test(readFileSync(LOGO_COMPONENT, "utf8"));
-}
-
 // --- report -----------------------------------------------------------------
+
+const src = componentSrc();
+const logoPath = `public${src}`;
+let failed = false;
 
 let file: Buffer;
 try {
-  file = readFileSync(LOGO_PATH);
+  file = readFileSync(logoPath);
 } catch {
-  console.log(`FAIL   ${LOGO_PATH} is missing. The idle screen will fall back to type.`);
+  console.log(`FAIL   ${logoPath} is missing. The idle screen will fall back to type.`);
   process.exit(1);
 }
 
-const signature = file.subarray(0, 4).toString("hex");
-if (signature.startsWith("ffd8ff")) {
-  console.log(`FAIL   ${LOGO_PATH} is a JPEG, not a PNG. JPEG cannot carry transparency.`);
+if (file.subarray(0, 3).toString("hex") === "ffd8ff") {
+  console.log(`FAIL   ${logoPath} is a JPEG, not a PNG. JPEG cannot carry transparency.`);
   process.exit(1);
 }
 
 const png = parsePng(file);
 if (!png) {
-  console.log(`FAIL   ${LOGO_PATH} is not a readable PNG (signature ${signature}).`);
+  console.log(`FAIL   ${logoPath} is not a readable PNG.`);
   process.exit(1);
 }
 
+console.log(`FILE   ${logoPath} (used by BrandLogo)`);
 console.log(
-  `PNG    ${png.width}x${png.height}, bit depth ${png.bitDepth}, colour type ${png.colorType}, ${Math.round(file.length / 1024)}KB`,
+  `       ${png.width}x${png.height}, colour type ${png.colorType}, ${Math.round(file.length / 1024)}KB`,
 );
-console.log(`       set <Image width={${png.width}} height={${png.height}}> in BrandLogo.tsx`);
 
 if (png.ancillary.length > 0) {
-  console.log(`WARN   colour chunks present: ${png.ancillary.join(", ")}.`);
-  console.log("       The browser may render these pixels differently from their raw values.");
+  console.log(`       colour chunks: ${png.ancillary.join(", ")} — may shift rendering slightly`);
 }
 
 const pixels = decode(png);
 if (!pixels) {
-  console.log("WARN   unsupported bit depth or interlacing; check the background by eye.");
+  console.log("WARN   unsupported bit depth or interlacing; check by eye.");
   process.exit(0);
 }
+
+// --- background -------------------------------------------------------------
 
 const border = sampleBorder(png, pixels);
-const opaque = border.filter((s) => s.a === 255);
-const canvas = cssColour();
+const opaqueBorder = border.filter((s) => s.a === 255);
+const transparent = opaqueBorder.length === 0;
 
-console.log(`       idle canvas (--color-brand-primary) is ${canvas ?? "(not found)"}`);
+if (transparent) {
+  console.log("OK     transparent background — no canvas colour to match.");
+} else {
+  const mean = {
+    r: Math.round(border.reduce((t, s) => t + s.r, 0) / border.length),
+    g: Math.round(border.reduce((t, s) => t + s.g, 0) / border.length),
+    b: Math.round(border.reduce((t, s) => t + s.b, 0) / border.length),
+  };
+  const spread = Math.max(
+    Math.max(...border.map((s) => s.r)) - Math.min(...border.map((s) => s.r)),
+    Math.max(...border.map((s) => s.g)) - Math.min(...border.map((s) => s.g)),
+    Math.max(...border.map((s) => s.b)) - Math.min(...border.map((s) => s.b)),
+  );
+  const canvas = cssColour();
+  const meanHex = hex(mean.r, mean.g, mean.b);
 
-if (opaque.length === 0) {
-  console.log("OK     the border is fully transparent — the artwork has no baked-in");
-  console.log("       background, so it sits cleanly on any canvas colour.");
-  process.exit(0);
+  console.log(`       opaque background: mean ${meanHex}, spread ${spread}, canvas ${canvas}`);
+
+  if (spread > 12) {
+    console.log("FAIL   background varies too much for any flat CSS colour to match it.");
+    failed = true;
+  } else if (canvas && meanHex !== canvas) {
+    console.log(`FAIL   background does not match the canvas — a square will show.`);
+    console.log(`         set --color-brand-primary: ${meanHex}; in ${CSS_PATH}`);
+    failed = true;
+  }
+
+  // A lossy re-encode of a flat field shifts it and adds artifacts, which reads
+  // as a mismatched square. Only matters when there is a background at all.
+  if (!/unoptimized/.test(component)) {
+    console.log("FAIL   BrandLogo must set `unoptimized`, or next/image will re-encode this");
+    console.log("       background to lossy WebP and paint a different colour.");
+    failed = true;
+  }
 }
 
-const channel = (pick: (s: Sample) => number) => border.map(pick);
-const spread = (values: number[]) => Math.max(...values) - Math.min(...values);
+// --- artwork box ------------------------------------------------------------
 
-const mean = {
-  r: Math.round(channel((s) => s.r).reduce((a, b) => a + b, 0) / border.length),
-  g: Math.round(channel((s) => s.g).reduce((a, b) => a + b, 0) / border.length),
-  b: Math.round(channel((s) => s.b).reduce((a, b) => a + b, 0) / border.length),
-};
-const worstSpread = Math.max(
-  spread(channel((s) => s.r)),
-  spread(channel((s) => s.g)),
-  spread(channel((s) => s.b)),
-);
+const box = boundingBox(png, pixels);
+
+if (!box) {
+  console.log("FAIL   the image is entirely transparent.");
+  process.exit(1);
+}
+
+const pct = (v: number, total: number) => `${((v / total) * 100).toFixed(1)}%`;
+const marginTop = pct(box.y, png.height);
+const marginBottom = pct(png.height - (box.y + box.height), png.height);
 
 console.log(
-  `       background sampled at ${border.length} points around the border: mean ${hex(mean.r, mean.g, mean.b)}, spread ${worstSpread}`,
+  `       visible artwork: ${box.width}x${box.height} at (${box.x}, ${box.y}); transparent margin top ${marginTop}, bottom ${marginBottom}`,
 );
 
-let failed = false;
+const declared = componentArtwork();
 
-if (worstSpread > 12) {
-  console.log("FAIL   the background varies too much for any single CSS value to match.");
-  console.log("       Re-export the logo with a transparent background.");
-  failed = true;
-} else if (canvas && hex(mean.r, mean.g, mean.b) !== canvas) {
-  console.log("FAIL   the background does not match the canvas; a square will be visible.");
-  console.log(`         set --color-brand-primary: ${hex(mean.r, mean.g, mean.b)}; in ${CSS_PATH}`);
-  failed = true;
-} else if (worstSpread > 2) {
-  console.log(`OK     matches the canvas, but the background is textured rather than flat`);
-  console.log(`       (varies by ${worstSpread}/255). The canvas sits on its mean, so any`);
-  console.log("       residual edge is a shade or two — a transparent export removes it.");
+if (!declared) {
+  console.log("WARN   could not read the ARTWORK constants from BrandLogo.");
 } else {
-  console.log("OK     the background is flat and matches the canvas in the source file.");
-}
+  const expected = {
+    imageWidth: png.width,
+    imageHeight: png.height,
+    x: box.x,
+    y: box.y,
+    width: box.width,
+    height: box.height,
+  };
+  const wrong = Object.entries(expected).filter(([key, value]) => declared[key] !== value);
 
-/*
- * The file being right is not enough. next/image re-encodes by default, and a
- * lossy pass over a large flat field shifts it and adds blocking artifacts —
- * which looks exactly like a mismatched square.
- */
-if (!isUnoptimized()) {
-  console.log("FAIL   BrandLogo.tsx does not set `unoptimized`, so next/image will re-encode");
-  console.log("       this to lossy WebP and the browser will paint a slightly different");
-  console.log("       colour than the one checked above.");
-  failed = true;
-} else {
-  console.log("OK     BrandLogo.tsx serves the original file, so the browser paints these");
-  console.log("       exact bytes.");
+  if (wrong.length === 0) {
+    console.log("OK     BrandLogo's crop matches the artwork, so its box is the visible logo.");
+  } else {
+    console.log("FAIL   BrandLogo's ARTWORK constants no longer match the file. Set:");
+    for (const [key, value] of Object.entries(expected)) {
+      console.log(`         ${key}: ${value},`);
+    }
+    failed = true;
+  }
 }
 
 process.exit(failed ? 1 : 0);

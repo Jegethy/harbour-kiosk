@@ -6,51 +6,74 @@ import { useState } from "react";
 /**
  * The centre logo.
  *
- * The artwork carries its own maroon background, so it must sit on a canvas of
- * exactly --color-brand-primary or a square appears around it. That value is
- * sampled from this file rather than chosen; `npm run check:logo` re-verifies
- * the match and reports the dimensions to use below.
+ * The export has generous transparent margins — the wordmark occupies roughly
+ * the middle half of the canvas. Rendered as a plain <img> those margins are
+ * still layout, so the logo reserves far more vertical space than it appears
+ * to use and everything below it looks pushed down.
  *
- * If the file is missing or fails to decode we fall back to the wordmark set in
- * type. A broken image icon in a lobby reads as a fault; this does not.
+ * So the artwork is cropped in CSS: the wrapper takes the aspect ratio of the
+ * visible artwork, and the image is positioned inside it so the transparent
+ * border falls outside. The element's box is then the logo you can actually
+ * see, and normal spacing behaves normally.
+ *
+ * ARTWORK is measured, not guessed. `npm run check:logo` reports these numbers
+ * from the file and fails if they have drifted, so replacing the artwork tells
+ * you exactly what to change here.
  */
+const ARTWORK = {
+  imageWidth: 1053,
+  imageHeight: 1024,
+  x: 210,
+  y: 211,
+  width: 628,
+  height: 562,
+};
+
+const percent = (value: number) => `${(value * 100).toFixed(3)}%`;
+
 export function BrandLogo({ className = "" }: { className?: string }) {
   const [failed, setFailed] = useState(false);
 
   if (failed) {
     return (
       <div className={`flex flex-col justify-center text-center ${className}`}>
-        <p className="font-serif text-6xl font-bold leading-none tracking-tight text-brand-cream">
+        <p className="font-serif text-5xl font-bold leading-none tracking-tight text-brand-cream">
           Harbour
         </p>
-        <p className="mt-3 text-xl font-semibold uppercase tracking-[0.28em] text-brand-cream">
+        <p className="mt-3 text-lg font-semibold uppercase tracking-[0.28em] text-brand-cream">
           Care Centre
         </p>
-        <p className="mt-1 text-base uppercase tracking-[0.34em] text-cream-dim">Portishead</p>
+        <p className="mt-1 text-sm uppercase tracking-[0.34em] text-cream-dim">Portishead</p>
       </div>
     );
   }
 
   return (
-    <Image
-      src="/logo.png"
-      alt="Harbour Care Centre, Portishead"
-      width={1053}
-      height={1024}
-      priority
-      /*
-       * Served as-is. next/image would re-encode this to lossy WebP — measured
-       * at 646KB down to 8KB — and a lossy pass over a large flat maroon field
-       * shifts the colour and adds blocking artifacts, which reads as a
-       * mismatched square around the logo. Optimisation can come back once the
-       * artwork has a transparent background and no colour to match.
-       */
-      unoptimized
-      onError={() => setFailed(true)}
-      // Both dimensions auto so the caller's max-width and max-height each act
-      // as a ceiling and the browser scales to fit whichever binds first,
-      // keeping the aspect ratio either way.
-      className={`h-auto w-auto object-contain ${className}`}
-    />
+    <span
+      className={`relative block overflow-hidden ${className}`}
+      style={{ aspectRatio: `${ARTWORK.width} / ${ARTWORK.height}` }}
+    >
+      <Image
+        src="/logo_nobg.png"
+        alt="Harbour Care Centre, Portishead"
+        width={ARTWORK.imageWidth}
+        height={ARTWORK.imageHeight}
+        priority
+        /*
+         * Served as-is. This is the brand mark on a screen that is lit all day,
+         * and a lossy re-encode softens the serif wordmark at the size it is
+         * drawn. 180KB, fetched once and cached.
+         */
+        unoptimized
+        onError={() => setFailed(true)}
+        className="absolute max-w-none"
+        style={{
+          width: percent(ARTWORK.imageWidth / ARTWORK.width),
+          height: "auto",
+          left: percent(-ARTWORK.x / ARTWORK.width),
+          top: percent(-ARTWORK.y / ARTWORK.height),
+        }}
+      />
+    </span>
   );
 }
