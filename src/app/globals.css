@@ -1,45 +1,44 @@
 @import "tailwindcss";
 
 /*
- * Harbour Care Centre — design tokens.
+ * Harbour Care Centre — brand palette.
  *
- * High contrast throughout: the kiosk sits in a lobby with variable daylight
- * and is read by people with age-related vision loss. Every foreground/
- * background pair below clears WCAG AA at large-text sizes, most clear AAA.
+ * Tailwind v4 is configured in CSS rather than tailwind.config.ts: anything
+ * declared in @theme becomes a utility, so --color-brand-primary gives you
+ * bg-brand-primary, text-brand-primary, border-brand-primary and so on.
+ *
+ * Contrast against the two backgrounds the kiosk actually uses:
+ *   cream on maroon   #F7E8D0 on #882425 -> 7.4:1  (AAA)
+ *   maroon on cream   #882425 on #F7E8D0 -> 7.4:1  (AAA)
+ *   crimson on cream  #D8222A on #F7E8D0 -> 4.3:1  (AA large — headings only)
+ *
+ * Crimson is a leaf accent, not a text colour. Keep it for badges, borders and
+ * key presses at large sizes; never set body copy in it.
  */
 @theme {
-  --color-harbour-50: #eef6fb;
-  --color-harbour-100: #d5e9f5;
-  --color-harbour-500: #1f7bab;
-  --color-harbour-700: #0f4c6b;
-  --color-harbour-900: #08293a;
+  --color-brand-primary: #882425;
+  --color-brand-cream: #f7e8d0;
+  --color-brand-accent: #d8222a;
+  --color-neutral-dark: #1f1f1f;
+  --color-neutral-light: #faf7f2;
 
-  --color-signin-600: #15803d;
-  --color-signin-700: #116632;
+  /* Derived steps for depth, pressed states and dividers. */
+  --color-brand-deep: #6b1c1d;
+  --color-brand-light: #a33739;
+  --color-cream-dim: #d9c6ab;
 
-  --color-signout-600: #1d4ed8;
-  --color-signout-700: #1739a8;
-
-  --color-alert-600: #b91c1c;
-  --color-alert-700: #911616;
-
-  --color-ink: #0b1620;
-  --color-paper: #f7fafc;
-
-  /* Touch targets. The reader is the primary input, but every on-screen
-     control must be comfortably hittable by an unsteady hand. */
-  --spacing-touch: 5rem;
+  /* Diagnostics and admin status only — deliberately outside the brand. */
+  --color-status-ok: #15803d;
+  --color-status-bad: #b91c1c;
 }
 
 :root {
   color-scheme: light;
-  --background: var(--color-paper);
-  --foreground: var(--color-ink);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-neutral-light);
+  color: var(--color-neutral-dark);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
@@ -50,6 +49,8 @@ body {
  * keeps normal browser behaviour (text selection, zoom, context menus).
  */
 body[data-kiosk] {
+  /* Maroon underneath everything, so no white flash between screens. */
+  background: var(--color-brand-primary);
   overscroll-behavior: none;
   -webkit-user-select: none;
   user-select: none;
@@ -65,6 +66,26 @@ body[data-kiosk] * {
   /* No caret anywhere: the only text entry is the in-app keyboard, which
      draws its own cursor. A blinking native caret invites a keyboard tap. */
   caret-color: transparent;
+}
+
+@keyframes kiosk-caret {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes kiosk-countdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

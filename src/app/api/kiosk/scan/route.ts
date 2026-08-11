@@ -1,30 +1,15 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { cleanField, deviceTokenRejection } from "@/lib/kiosk/guard";
 import { isScanOutcome, type ScanOutcome } from "@/lib/kiosk/outcomes";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/**
- * Optional shared secret. When KIOSK_DEVICE_TOKEN is set, the tablet must send
- * it as x-kiosk-token.
- *
- * Without it this endpoint is open to anyone who can reach the app: they could
- * enumerate valid fob IDs (UNKNOWN_FOB vs a name in the response) and sign
- * people in and out at will, which corrupts the fire roster. Left unenforced
- * when unset so local development needs no setup.
- */
-function deviceTokenRejection(request: Request): NextResponse | null {
-  const expected = process.env.KIOSK_DEVICE_TOKEN;
-  if (!expected) return null;
-
-  if (request.headers.get("x-kiosk-token") !== expected) {
-    return NextResponse.json({ outcome: "ERROR", message: "Unauthorised device." } satisfies ScanOutcome, {
-      status: 401,
-    });
-  }
-  return null;
-}
+const UNAVAILABLE: ScanOutcome = {
+  outcome: "ERROR",
+  message: "Check-in is temporarily unavailable. Please see reception.",
+};
 
 export async function POST(request: Request) {
   const rejected = deviceTokenRejection(request);
@@ -37,38 +22,35 @@ export async function POST(request: Request) {
     return NextResponse.json({ outcome: "INVALID" } satisfies ScanOutcome, { status: 400 });
   }
 
-  const raw = (body as { fob_id?: unknown } | null)?.fob_id;
-  const fobId = typeof raw === "string" ? raw.trim() : "";
+  const fobId = cleanField((body as { fob_id?: unknown } | null)?.fob_id, 64);
 
-  if (fobId === "" || fobId.length > 64) {
+  if (!fobId) {
     return NextResponse.json({ outcome: "INVALID" } satisfies ScanOutcome, { status: 400 });
   }
 
-  const supabase = createAdminClient();
-  const { data, error } = await supabase.rpc("handle_fob_scan", { p_fob_id: fobId });
+  let data: unknown;
+  try {
+    const supabase = createAdminClient();
+    const result = await supabase.rpc("handle_fob_scan", { p_fob_id: fobId });
 
-  if (error) {
-    // Logged server-side in full; the tablet gets a message a visitor can act
-    // on, with no database detail.
-    console.error("[kiosk/scan] handle_fob_scan failed", error);
-    return NextResponse.json(
-      {
-        outcome: "ERROR",
-        message: "Check-in is temporarily unavailable. Please see reception.",
-      } satisfies ScanOutcome,
-      { status: 502 },
-    );
+    if (result.error) {
+      // Logged server-side in full; the tablet gets a message a visitor can
+      // act on, with no database detail.
+      console.error("[kiosk/scan] handle_fob_scan failed", result.error);
+      return NextResponse.json(UNAVAILABLE, { status: 502 });
+    }
+    data = result.data;
+  } catch (thrown) {
+    // Missing credentials and network failures throw rather than returning an
+    // error. Without this the route answers 500 with an empty body, and the
+    // kiosk cannot tell a fault from a malformed reply.
+    console.error("[kiosk/scan] could not reach Supabase", thrown);
+    return NextResponse.json(UNAVAILABLE, { status: 503 });
   }
 
   if (!isScanOutcome(data)) {
     console.error("[kiosk/scan] unrecognised RPC payload", data);
-    return NextResponse.json(
-      {
-        outcome: "ERROR",
-        message: "Check-in is temporarily unavailable. Please see reception.",
-      } satisfies ScanOutcome,
-      { status: 502 },
-    );
+    return NextResponse.json(UNAVAILABLE, { status: 502 });
   }
 
   return NextResponse.json(data, {

@@ -116,14 +116,14 @@ export default function DiagnosticsPage() {
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-harbour-900 p-4 text-sm text-white">
+    <div className="h-full overflow-y-auto bg-neutral-dark p-4 text-sm text-white">
       <FobCaptureInput inputProps={inputProps} />
 
       <header className="mb-4 flex flex-wrap items-center gap-3">
         <h1 className="text-xl font-bold">Scanner diagnostics</h1>
         <span
           className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide ${
-            hasFocus ? "bg-signin-600 text-white" : "bg-alert-600 text-white"
+            hasFocus ? "bg-status-ok text-white" : "bg-status-bad text-white"
           }`}
         >
           {hasFocus ? "capture focused" : "focus lost"}
@@ -206,7 +206,7 @@ export default function DiagnosticsPage() {
                 <li
                   key={id}
                   className={`rounded-md p-2 ${
-                    event.kind === "accepted" ? "bg-signin-700/60" : "bg-alert-700/60"
+                    event.kind === "accepted" ? "bg-status-ok/40" : "bg-status-bad/40"
                   }`}
                 >
                   <div className="flex justify-between">

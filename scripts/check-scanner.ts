@@ -106,7 +106,7 @@ console.log("\n5. Bouncy double-fire of the same fob");
   ]);
 }
 
-console.log("\n6. Same fob tapped again after the dedupe window (sign out)");
+console.log("\n6. Same fob tapped again after the dedupe window (deliberate sign out)");
 {
   const b = new ScanBuffer();
   const events = drive(b, [
@@ -183,14 +183,29 @@ console.log("\n12. Non-code characters are ignored");
   check("punctuation stripped", summarise(events), ["+1234567890:terminator"]);
 }
 
-console.log("\n13. Abandoned partial read surfaces as a rejection, not silence");
+console.log("\n13. A different fob during the dedupe window is NOT suppressed");
+{
+  const b = new ScanBuffer();
+  const events = drive(b, [
+    ...burst("1234567890", 1000, 15),
+    { enter: true, at: 1150 },
+    ...burst("9999999999", 1400, 15), // second visitor, 250ms later
+    { enter: true, at: 1550 },
+  ]);
+  check("both accepted", summarise(events), [
+    "+1234567890:terminator",
+    "+9999999999:terminator",
+  ]);
+}
+
+console.log("\n14. Abandoned partial read surfaces as a rejection, not silence");
 {
   const b = new ScanBuffer();
   const events = drive(b, [...burst("123", 1000, 15), { poll: true, at: 1400 }]);
   check("quiet-flushed as too-short", summarise(events), ["-123:too-short"]);
 }
 
-console.log("\n14. Buffer is clean after a rejection");
+console.log("\n15. Buffer is clean after a rejection");
 {
   const b = new ScanBuffer();
   const events = drive(b, [

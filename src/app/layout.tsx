@@ -13,7 +13,7 @@ export const viewport: Viewport = {
   // half-scrolled screen with no way back.
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#0f4c6b",
+  themeColor: "#882425",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

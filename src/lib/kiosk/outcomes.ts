@@ -26,14 +26,34 @@ export type ScanOutcome =
 
 export type ScanOutcomeKind = ScanOutcome["outcome"];
 
-export function isScanOutcome(value: unknown): value is ScanOutcome {
-  if (typeof value !== "object" || value === null) return false;
+/** The contract for register_visitor() and /api/kiosk/register. */
+export type RegisterOutcome =
+  | { outcome: "REGISTERED"; visitor_id: string; full_name: string; at: string }
+  /** The fob was claimed between the scan and the form submission. */
+  | { outcome: "FOB_TAKEN" }
+  | { outcome: "INVALID" }
+  | { outcome: "ERROR"; message: string };
+
+function outcomeKind(value: unknown): string | null {
+  if (typeof value !== "object" || value === null) return null;
   const kind = (value as { outcome?: unknown }).outcome;
+  return typeof kind === "string" ? kind : null;
+}
+
+export function isScanOutcome(value: unknown): value is ScanOutcome {
+  const kind = outcomeKind(value);
   return (
     kind === "SIGNED_IN" ||
     kind === "SIGNED_OUT" ||
     kind === "UNKNOWN_FOB" ||
     kind === "INVALID" ||
     kind === "ERROR"
+  );
+}
+
+export function isRegisterOutcome(value: unknown): value is RegisterOutcome {
+  const kind = outcomeKind(value);
+  return (
+    kind === "REGISTERED" || kind === "FOB_TAKEN" || kind === "INVALID" || kind === "ERROR"
   );
 }

@@ -65,7 +65,13 @@ export const DEFAULT_SCAN_CONFIG: ScanConfig = {
   maxInterKeyMs: 250,
   maxBurstMs: 900,
   quietFlushMs: 300,
-  dedupeMs: 1200,
+  /*
+   * Matches how long a confirmation stays on screen. A visitor who taps again
+   * because they are not sure it worked would otherwise be signed straight
+   * back out while their own "Signed in" message is still showing. Dedupe is
+   * per-code, so a second person's fob is still processed immediately.
+   */
+  dedupeMs: 4000,
   isCodeChar: (ch) => /^[0-9A-Za-z]$/.test(ch),
 };
 
