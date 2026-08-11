@@ -17,12 +17,18 @@ Work through this before the kiosk goes live in the lobby.
       does **not** remove the code. Verified: with the flag off the component
       and its strings are still in the client bundle. Deletion is the only
       thing that actually removes it.
-- [ ] **Delete the `/kiosk/preview` route** (`src/app/kiosk/preview/`). It is a
+- [ ] **Delete the `/kiosk/preview` route** (`src/app/(kiosk-shell)/kiosk/preview/`). It is a
       design walkthrough with stand-in data, kept for review only. It is
       unauthenticated and has no place in the lobby.
-- [ ] **Add `public/logo.png`.** Until it exists the idle screen falls back to
-      the wordmark set in type. The fallback is on brand, so this is easy to
-      forget — check the real logo is showing.
+- [ ] **`public/logo.png` must be a real PNG with transparency.** The idle
+      screen is a light canvas and the logo sits directly on it, so a JPEG
+      saved under a `.png` name renders as a solid rectangle. Check with:
+      ```
+      node -e "console.log(require('fs').readFileSync('public/logo.png').subarray(0,4).toString('hex'))"
+      ```
+      `89504e47` is PNG. `ffd8ffe0` is JPEG — re-export it.
+      If the file is missing the screen falls back to the wordmark in type,
+      which is on brand and therefore easy to mistake for the real thing.
 - [ ] **Apply every migration in `supabase/migrations/`** in filename order
       (`supabase db push`, or paste each into the SQL Editor). All are
       idempotent and safe to re-run.
@@ -33,7 +39,7 @@ Work through this before the kiosk goes live in the lobby.
       `node -e "console.log(require('crypto').randomBytes(24).toString('base64url'))"`.
       Required — kiosk endpoints refuse every request without it in production.
 - [ ] **Pair the tablet** by opening `/kiosk/setup` on it once and entering that
-      code. `/kiosk` redirects there automatically until it is paired.
+      code. `/` redirects there automatically until it is paired.
 - [ ] **Pin the fob code width.** Open `/kiosk/diagnostics`, tap several fobs,
       note the exact character count, then set `minLength` and `maxLength` in
       `DEFAULT_SCAN_CONFIG` (`src/lib/kiosk/scanner.ts`) to that value. A
@@ -44,7 +50,7 @@ Work through this before the kiosk goes live in the lobby.
 
 ## Verify after deploying
 
-- [ ] `/kiosk` reaches the idle screen with the logo and a ticking clock.
+- [ ] `/` reaches the idle screen with the logo and a ticking clock.
 - [ ] A registered fob signs in, then signs out on a second tap.
 - [ ] An unrecognised fob shows the red "see reception" screen for 4 seconds and
       returns to idle. It must never prompt for registration.
@@ -68,13 +74,14 @@ Work through this before the kiosk goes live in the lobby.
 
 ## Tablet setup
 
-- [ ] Lock to **portrait**. In landscape there is not room for three fields plus
-      a keyboard at these touch-target sizes.
+- [ ] Lock the orientation so the idle screen cannot reflow unexpectedly.
+      Either works now that registration has moved to the admin panel — the
+      kiosk is a single centred column.
 - [ ] Android kiosk / lock-task mode, with the status and navigation bars hidden.
 - [ ] Disable the system keyboard if the launcher allows it — the app never
       needs it, and its microphone and settings buttons are a breakout route.
 - [ ] Display sleep off, or long enough to cover the quietest part of the day.
-- [ ] Auto-launch the browser at `/kiosk` on boot, so a power cut does not leave
+- [ ] Auto-launch the browser at `/` on boot, so a power cut does not leave
       reception without sign-in.
 
 ## Ongoing

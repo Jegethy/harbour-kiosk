@@ -7,20 +7,31 @@
  * declared in @theme becomes a utility, so --color-brand-primary gives you
  * bg-brand-primary, text-brand-primary, border-brand-primary and so on.
  *
- * Contrast against the two backgrounds the kiosk actually uses:
- *   cream on maroon   #F7E8D0 on #882425 -> 7.4:1  (AAA)
- *   maroon on cream   #882425 on #F7E8D0 -> 7.4:1  (AAA)
- *   crimson on cream  #D8222A on #F7E8D0 -> 4.3:1  (AA large — headings only)
+ * Measured contrast for the pairs actually in use:
+ *   slate on canvas   #1E293B on #FAF9F6 -> 13.9:1 (AAA)
+ *   muted on canvas   #55606F on #FAF9F6 ->  6.0:1 (AA)
+ *   cream on maroon   #F7E8D0 on #882425 ->  7.4:1 (AAA)
+ *   maroon on cream   #882425 on #F7E8D0 ->  7.4:1 (AAA)
+ *   white on red      #FFFFFF on #C8102E ->  5.9:1 (AA)
+ *   red on cream      #C8102E on #F7E8D0 ->  4.9:1 (AA)
  *
- * Crimson is a leaf accent, not a text colour. Keep it for badges, borders and
- * key presses at large sizes; never set body copy in it.
+ * Red is a call-to-action and an alert colour, not a text colour. Keep it for
+ * badges, borders and full-bleed alerts; never set body copy in it.
  */
 @theme {
   --color-brand-primary: #882425;
   --color-brand-cream: #f7e8d0;
-  --color-brand-accent: #d8222a;
+  --color-brand-accent: #c8102e;
   --color-neutral-dark: #1f1f1f;
   --color-neutral-light: #faf7f2;
+
+  /* The idle kiosk: warm off-white with a deep slate for text. */
+  --color-kiosk-canvas: #faf9f6;
+  --color-kiosk-ink: #1e293b;
+  --color-kiosk-muted: #55606f;
+
+  /* "CARE CENTRE" in the logo wordmark. */
+  --color-brand-gold: #b1976b;
 
   /* Derived steps for depth, pressed states and dividers. */
   --color-brand-deep: #6b1c1d;
@@ -49,8 +60,9 @@ body {
  * keeps normal browser behaviour (text selection, zoom, context menus).
  */
 body[data-kiosk] {
-  /* Maroon underneath everything, so no white flash between screens. */
-  background: var(--color-brand-primary);
+  /* Matches the idle screen, which is what is on display all day, so there is
+     no flash of a different colour between screens. */
+  background: var(--color-kiosk-canvas);
   overscroll-behavior: none;
   -webkit-user-select: none;
   user-select: none;

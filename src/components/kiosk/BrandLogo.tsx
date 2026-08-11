@@ -4,12 +4,18 @@ import Image from "next/image";
 import { useState } from "react";
 
 /**
- * The centre logo, with a typographic fallback.
+ * The centre logo.
  *
- * A broken image icon on a lobby kiosk looks like a fault, so if /logo.png is
- * missing or fails to decode we render the wordmark in type instead. The
- * fallback is on brand and legible; nobody walking up can tell it is a
- * fallback.
+ * No wrapper, background or padding — the artwork is expected to be a
+ * transparent PNG sitting directly on the canvas. Width is capped by the
+ * caller; height follows the file's own aspect ratio, so replacing the artwork
+ * needs no code change.
+ *
+ * The width/height props are only intrinsic-ratio hints for reserving space
+ * before load. CSS drives the rendered size.
+ *
+ * If the file is missing or fails to decode we fall back to the wordmark set
+ * in type. A broken image icon in a lobby reads as a fault; this does not.
  */
 export function BrandLogo({ className = "" }: { className?: string }) {
   const [failed, setFailed] = useState(false);
@@ -17,14 +23,11 @@ export function BrandLogo({ className = "" }: { className?: string }) {
   if (failed) {
     return (
       <div className={`text-center ${className}`}>
-        <p className="font-serif text-5xl font-bold tracking-tight text-brand-cream sm:text-6xl">
+        <p className="font-serif text-6xl font-bold leading-none tracking-tight text-brand-accent">
           Harbour
         </p>
-        <p className="mt-1 text-xl font-semibold uppercase tracking-[0.2em] text-brand-cream sm:text-2xl">
+        <p className="mt-2 text-xl font-semibold uppercase tracking-[0.28em] text-brand-gold">
           Care Centre
-        </p>
-        <p className="text-base uppercase tracking-[0.3em] text-cream-dim sm:text-lg">
-          Portishead
         </p>
       </div>
     );
@@ -33,12 +36,12 @@ export function BrandLogo({ className = "" }: { className?: string }) {
   return (
     <Image
       src="/logo.png"
-      alt="Harbour Care Centre, Portishead"
-      width={320}
-      height={320}
+      alt="Harbour Care Centre"
+      width={900}
+      height={875}
       priority
       onError={() => setFailed(true)}
-      className={`h-auto w-auto object-contain ${className}`}
+      className={`h-auto w-full object-contain ${className}`}
     />
   );
 }

@@ -4,9 +4,10 @@ A visitor sign-in/sign-out system built around a 125kHz RFID fob reader.
 
 | Route | Access | Purpose |
 | --- | --- | --- |
-| `/kiosk` | Open | Idle screen, sign in/out confirmations, unrecognised-fob notice |
-| `/kiosk/diagnostics` | Open | Reader validation: keystroke timings, buffer decisions, DB round trip |
-| `/kiosk/preview` | Open | Design walkthrough with stand-in data — **delete before go-live** |
+| `/` | Paired device | Idle screen, sign in/out confirmations, unrecognised-fob notice |
+| `/kiosk/setup` | Open | One-time device pairing |
+| `/kiosk/diagnostics` | Staff | Reader validation: keystroke timings, buffer decisions, DB round trip |
+| `/kiosk/preview` | Staff | Design walkthrough with stand-in data — **delete before go-live** |
 | `/admin` | Staff | Live fire roster, updated over realtime |
 | `/admin/visitors` | Staff | Add new visitors, assign fobs, Unlink Fob |
 | `/admin/login` | Open | Supabase Auth sign in |

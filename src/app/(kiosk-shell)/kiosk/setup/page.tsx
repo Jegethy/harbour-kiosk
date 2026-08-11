@@ -29,7 +29,7 @@ const ERRORS: Record<string, string> = {
  */
 export default async function KioskSetupPage({ searchParams }: PageProps<"/kiosk/setup">) {
   if (await isPairedDevice()) {
-    redirect("/kiosk");
+    redirect("/");
   }
 
   const params = await searchParams;

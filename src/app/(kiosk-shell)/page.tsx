@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { KioskClient } from "@/app/kiosk/KioskClient";
+import { KioskClient } from "@/app/(kiosk-shell)/KioskClient";
 import { isPairedDevice } from "@/lib/kiosk/guard";
 
 // The pairing cookie has to be read per request.

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { DiagnosticsPanel } from "@/app/kiosk/diagnostics/DiagnosticsPanel";
+import { DiagnosticsPanel } from "@/app/(kiosk-shell)/kiosk/diagnostics/DiagnosticsPanel";
 import { requireStaff } from "@/lib/auth";
 
 export const metadata: Metadata = {

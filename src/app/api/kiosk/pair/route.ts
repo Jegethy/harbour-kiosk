@@ -105,7 +105,7 @@ export async function POST(request: Request) {
     return fail(401, "code", "That setup code was not recognised.");
   }
 
-  const response = isFormPost ? seeOther("/kiosk") : NextResponse.json({ ok: true });
+  const response = isFormPost ? seeOther("/") : NextResponse.json({ ok: true });
 
   response.cookies.set(DEVICE_COOKIE, mintDeviceToken(), {
     httpOnly: true,

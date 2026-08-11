@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PreviewPanel } from "@/app/kiosk/preview/PreviewPanel";
+import { PreviewPanel } from "@/app/(kiosk-shell)/kiosk/preview/PreviewPanel";
 import { requireStaff } from "@/lib/auth";
 
 export const metadata: Metadata = {
