@@ -10,8 +10,9 @@ Work through this before the kiosk goes live in the lobby.
 - [ ] **Add `public/logo.png`.** Until it exists the idle screen falls back to
       the wordmark set in type. The fallback is on brand, so this is easy to
       forget — check the real logo is showing.
-- [ ] **Apply `supabase/migrations/0001_init.sql`** to the production project
-      (`supabase db push`, or paste into the SQL Editor). It is idempotent.
+- [ ] **Apply every migration in `supabase/migrations/`** in filename order
+      (`supabase db push`, or paste each into the SQL Editor). All are
+      idempotent and safe to re-run.
 - [ ] **Disable public signups** in Supabase → Authentication → Providers.
       Otherwise anyone can create themselves a staff account at `/admin`.
 - [ ] **Create staff accounts by invite** in the Supabase dashboard.
@@ -33,8 +34,13 @@ Work through this before the kiosk goes live in the lobby.
 
 - [ ] `/kiosk` reaches the idle screen with the logo and a ticking clock.
 - [ ] A registered fob signs in, then signs out on a second tap.
-- [ ] An unregistered fob opens registration; the in-app keyboard works and the
-      native Android keyboard never appears.
+- [ ] An unrecognised fob shows the red "see reception" screen for 4 seconds and
+      returns to idle. It must never prompt for registration.
+- [ ] "Add new visitor" at `/admin/visitors` creates a profile, and tapping a
+      blank fob into the Keyfob ID field fills it without submitting the form.
+- [ ] A newly added visitor does **not** appear on the roster until they tap in.
+- [ ] Adding a visitor with a fob already assigned to someone else is refused,
+      and the message names the current holder.
 - [ ] `/admin` redirects to `/admin/login` when signed out.
 - [ ] The live roster updates within a second or two of a kiosk tap, and the
       connection pill reads "Live".
@@ -68,7 +74,7 @@ Work through this before the kiosk goes live in the lobby.
 
 ## Open security item
 
-`/api/kiosk/scan` and `/api/kiosk/register` are currently **unauthenticated**.
+`/api/kiosk/scan` is currently **unauthenticated**.
 Anyone who can reach the app can enumerate valid fob IDs (an unknown fob answers
 differently from a known one) and sign people in and out at will, which corrupts
 the fire roster.
@@ -86,9 +92,11 @@ before go-live. Options, cheapest first:
 
 ## Known gaps
 
-- Registration requires the network. This is deliberate: a tap recorded locally
+- Signing in requires the network. This is deliberate: a tap recorded locally
   and synced later could contradict the fire roster, and a roster that is
   confidently wrong is worse than one that is honestly unavailable. The kiosk
   detects the outage and shows "System offline — please see reception", then
   recovers on its own.
+- The printed evacuation list does not include car registrations. Say if you
+  want them — it is a column on the view and the print table.
 - Nothing prunes old visitor records; see the retention item above.

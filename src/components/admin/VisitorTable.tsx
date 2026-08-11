@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { AddVisitorDialog } from "@/components/admin/AddVisitorDialog";
 import { UnlinkFobButton } from "@/components/admin/UnlinkFobButton";
 import type { VisitorRow } from "@/lib/types/database";
 
@@ -21,7 +22,13 @@ export function VisitorTable({ visitors }: { visitors: VisitorWithStatus[] }) {
     const needle = query.trim().toLowerCase();
     if (needle === "") return visitors;
     return visitors.filter((visitor) =>
-      [visitor.full_name, visitor.visiting_who, visitor.company_or_relation, visitor.fob_id]
+      [
+        visitor.full_name,
+        visitor.visiting_who,
+        visitor.company_or_relation,
+        visitor.car_registration,
+        visitor.fob_id,
+      ]
         .filter(Boolean)
         .some((field) => field!.toLowerCase().includes(needle)),
     );
@@ -37,16 +44,20 @@ export function VisitorTable({ visitors }: { visitors: VisitorWithStatus[] }) {
           </p>
         </div>
 
-        <label className="flex flex-col gap-1">
-          <span className="sr-only">Search visitors</span>
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search name, resident, fob…"
-            className="w-64 rounded-lg border-2 border-neutral-dark/20 bg-white px-3 py-2 text-neutral-dark outline-none focus:border-brand-primary"
-          />
-        </label>
+        <div className="flex flex-wrap items-start gap-3">
+          <label className="flex flex-col gap-1">
+            <span className="sr-only">Search visitors</span>
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search name, resident, car, fob…"
+              className="w-64 rounded-lg border-2 border-neutral-dark/20 bg-white px-3 py-2.5 text-neutral-dark outline-none focus:border-brand-primary"
+            />
+          </label>
+
+          <AddVisitorDialog />
+        </div>
       </header>
 
       {visitors.length === 0 ? (
@@ -60,6 +71,7 @@ export function VisitorTable({ visitors }: { visitors: VisitorWithStatus[] }) {
               <tr className="border-b-2 border-neutral-dark/10 bg-neutral-light">
                 <Th>Name</Th>
                 <Th>Visiting</Th>
+                <Th>Car</Th>
                 <Th>Keyfob</Th>
                 <Th>Registered</Th>
                 <Th>Status</Th>
@@ -80,6 +92,16 @@ export function VisitorTable({ visitors }: { visitors: VisitorWithStatus[] }) {
 
                   <td className="px-4 py-3 text-neutral-dark">
                     {visitor.visiting_who ?? <Dash />}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    {visitor.car_registration ? (
+                      <code className="rounded bg-neutral-light px-2 py-1 font-mono text-sm font-bold tracking-wide text-neutral-dark">
+                        {visitor.car_registration}
+                      </code>
+                    ) : (
+                      <Dash />
+                    )}
                   </td>
 
                   <td className="px-4 py-3">

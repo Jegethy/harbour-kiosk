@@ -4,11 +4,11 @@ A visitor sign-in/sign-out system built around a 125kHz RFID fob reader.
 
 | Route | Access | Purpose |
 | --- | --- | --- |
-| `/kiosk` | Open | Idle screen, sign in/out confirmations, first-time registration |
+| `/kiosk` | Open | Idle screen, sign in/out confirmations, unrecognised-fob notice |
 | `/kiosk/diagnostics` | Open | Reader validation: keystroke timings, buffer decisions, DB round trip |
 | `/kiosk/preview` | Open | Design walkthrough with stand-in data — **delete before go-live** |
 | `/admin` | Staff | Live fire roster, updated over realtime |
-| `/admin/visitors` | Staff | All registered visitors, with Unlink Fob |
+| `/admin/visitors` | Staff | Add new visitors, assign fobs, Unlink Fob |
 | `/admin/login` | Open | Supabase Auth sign in |
 
 See [DEPLOYMENT.md](DEPLOYMENT.md) before going live.
@@ -58,6 +58,12 @@ with a 401.** See the open security item in [DEPLOYMENT.md](DEPLOYMENT.md) for
 the two ways to close this properly.
 
 ## Fob capture
+
+Visitors do not register themselves. Staff create profiles at
+`/admin/visitors`, assigning a fob by tapping it on a reader at the desk — the
+same capture logic as the kiosk, scoped to one form field
+(`src/components/admin/FobIdField.tsx`). An unrecognised fob at the kiosk shows
+a red "see reception" notice and returns to idle.
 
 The reader is a keyboard emulator: on tap it types ~10 characters in a burst and
 sends Enter. `src/lib/kiosk/scanner.ts` holds the buffering rules as pure logic

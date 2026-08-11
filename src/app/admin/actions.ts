@@ -39,6 +39,82 @@ export async function signInAction(
   redirect(safeNext(formData.get("next")));
 }
 
+export interface CreateVisitorResult {
+  error?: string;
+  createdName?: string;
+}
+
+function clean(formData: FormData, key: string): string | null {
+  const value = String(formData.get(key) ?? "").trim();
+  return value === "" ? null : value;
+}
+
+/**
+ * Create a visitor from the admin panel.
+ *
+ * Deliberately does NOT open a visit_log. Registering someone at the desk is
+ * not the same as them being in the building, and a roster that counts
+ * paperwork rather than people is worse than useless in an evacuation. They
+ * become present when they tap in at the kiosk.
+ */
+export async function createVisitorAction(
+  formData: FormData,
+): Promise<CreateVisitorResult> {
+  await requireStaff();
+
+  const fullName = clean(formData, "full_name");
+  const visitingWho = clean(formData, "visiting_who");
+  const companyOrRelation = clean(formData, "company_or_relation");
+  const fobId = clean(formData, "fob_id");
+
+  // Plates are read back to people and matched by eye; normalise the casing and
+  // stray spacing so "ab12 cde" and "AB12CDE" do not look like two vehicles.
+  const carRegistration = clean(formData, "car_registration")
+    ?.toUpperCase()
+    .replace(/\s+/g, " ");
+
+  if (!fullName) return { error: "Full name is required." };
+  if (!visitingWho) return { error: "Please record who they are visiting." };
+  if (fullName.length > 120 || visitingWho.length > 120) {
+    return { error: "That name is too long." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("visitors").insert({
+    full_name: fullName,
+    visiting_who: visitingWho,
+    company_or_relation: companyOrRelation,
+    car_registration: carRegistration ?? null,
+    fob_id: fobId,
+  });
+
+  if (error) {
+    // 23505 on this table can only be the fob_id unique index. Naming the
+    // current holder turns a dead end into an obvious next action.
+    if (error.code === "23505" && fobId) {
+      const { data: holder } = await supabase
+        .from("visitors")
+        .select("full_name")
+        .eq("fob_id", fobId)
+        .maybeSingle();
+
+      return {
+        error: holder
+          ? `That keyfob is already assigned to ${holder.full_name}. Unlink it from them first.`
+          : "That keyfob is already assigned to someone else.",
+      };
+    }
+
+    console.error("[admin] could not create visitor", error);
+    return { error: "Could not save this visitor. Please try again." };
+  }
+
+  revalidatePath("/admin/visitors");
+  revalidatePath("/admin");
+
+  return { createdName: fullName };
+}
+
 export async function signOutAction(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();

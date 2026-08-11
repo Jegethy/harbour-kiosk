@@ -1,21 +1,9 @@
 "use client";
 
-import {
-  isRegisterOutcome,
-  isScanOutcome,
-  type RegisterOutcome,
-  type ScanOutcome,
-} from "@/lib/kiosk/outcomes";
+import { isScanOutcome, type ScanOutcome } from "@/lib/kiosk/outcomes";
 
 /** Beyond this a visitor has already assumed the tap failed. */
 const SCAN_TIMEOUT_MS = 8000;
-
-export interface RegistrationPayload {
-  fob_id: string;
-  full_name: string;
-  visiting_who: string;
-  company_or_relation: string | null;
-}
 
 /**
  * Submit a fob tap. Never throws — every failure path resolves to an ERROR
@@ -23,13 +11,6 @@ export interface RegistrationPayload {
  */
 export async function submitScan(fobId: string): Promise<ScanOutcome> {
   return post("/api/kiosk/scan", { fob_id: fobId }, isScanOutcome);
-}
-
-/** Create a first-time visitor and sign them in. Never throws. */
-export async function submitRegistration(
-  payload: RegistrationPayload,
-): Promise<RegisterOutcome> {
-  return post("/api/kiosk/register", payload, isRegisterOutcome);
 }
 
 async function post<T extends { outcome: string }>(

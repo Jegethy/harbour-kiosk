@@ -16,6 +16,8 @@ export type VisitorRow = {
   full_name: string;
   company_or_relation: string | null;
   visiting_who: string | null;
+  /** Vehicle registration plate, if they drove. */
+  car_registration: string | null;
   created_at: string;
 };
 
@@ -64,15 +66,6 @@ export type Database = {
     Functions: {
       handle_fob_scan: {
         Args: { p_fob_id: string };
-        Returns: Json;
-      };
-      register_visitor: {
-        Args: {
-          p_fob_id: string;
-          p_full_name: string;
-          p_company_or_relation?: string | null;
-          p_visiting_who?: string | null;
-        };
         Returns: Json;
       };
       unlink_fob: {

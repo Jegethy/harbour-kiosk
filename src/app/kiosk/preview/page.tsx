@@ -2,14 +2,13 @@
 
 import { NoticeScreen } from "@/components/kiosk/NoticeScreen";
 import { OfflineScreen } from "@/components/kiosk/OfflineScreen";
-import { RegistrationScreen } from "@/components/kiosk/RegistrationScreen";
 import { ResultScreen } from "@/components/kiosk/ResultScreen";
 
 /**
  * Design walkthrough: every kiosk screen stacked, one viewport each, scrollable.
  *
- * Reaching these states for real needs a registered fob, an unregistered fob
- * and a broken database connection, in that order. This page shows them with
+ * Reaching these states for real needs a registered fob, an unknown fob and a
+ * broken database connection, in that order. This page shows them with
  * stand-in data so the layout can be reviewed on the actual tablet.
  *
  * It renders no real visitor data and reads nothing from the database, but it
@@ -35,8 +34,13 @@ export default function PreviewPage() {
         />
       </Frame>
 
-      <Frame label="Registration — unrecognised fob">
-        <RegistrationScreen fobId="1234567890" onCancel={() => {}} onRegistered={() => {}} />
+      <Frame label="Unrecognised fob — 4s auto-reset">
+        <NoticeScreen
+          tone="alert"
+          title="Unrecognised keyfob"
+          detail="Please see reception to register."
+          resetMs={4000}
+        />
       </Frame>
 
       <Frame label="Error — database unreachable">
@@ -44,6 +48,7 @@ export default function PreviewPage() {
           tone="error"
           title="Sorry — we could not record that"
           detail="No connection to the check-in service. Please try again. If it happens again, please see reception."
+          resetMs={7000}
         />
       </Frame>
 

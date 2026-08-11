@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { FobCaptureInput } from "@/components/kiosk/FobCaptureInput";
 import { IdleScreen } from "@/components/kiosk/IdleScreen";
 import { NoticeScreen } from "@/components/kiosk/NoticeScreen";
-import { RegistrationScreen } from "@/components/kiosk/RegistrationScreen";
 import { OfflineScreen } from "@/components/kiosk/OfflineScreen";
 import { ResultScreen, type KioskResult } from "@/components/kiosk/ResultScreen";
 import { useConnectivity } from "@/hooks/useConnectivity";
@@ -19,16 +18,16 @@ type View =
   | { name: "idle" }
   | { name: "working" }
   | { name: "result"; result: KioskResult }
-  | { name: "register"; fobId: string }
+  | { name: "unrecognised" }
   | { name: "error"; message: string };
 
 /**
  * Connectivity gate.
  *
  * Unmounting the whole flow while offline is the recovery mechanism: every
- * in-progress screen and any half-typed registration goes with it, so
- * restoring the connection brings back a clean idle screen on its own. Nobody
- * has to touch the tablet, and there is no reset path to get wrong.
+ * in-progress screen goes with it, so restoring the connection brings back a
+ * clean idle screen on its own. Nobody has to touch the tablet, and there is
+ * no reset path to get wrong.
  *
  * It also stops the scanner dead, which is the point — a tap that cannot be
  * recorded should not be quietly swallowed.
@@ -44,11 +43,14 @@ export default function KioskPage() {
 /**
  * The kiosk state machine.
  *
- * The scanner stays armed on the idle, result and error screens, so a second
+ * Sign in and sign out only. Visitors are registered by staff in the admin
+ * panel, so an unrecognised fob is a dead end here rather than the start of a
+ * form — the kiosk says so in red and returns to idle.
+ *
+ * The scanner stays armed on every screen except "working", so a second
  * visitor walking up behind the first is not ignored while a confirmation is
- * counting down — their tap simply replaces it. It is disarmed only while a
- * request is in flight (nothing sensible to do with a second scan) and during
- * registration (where a stray tap would throw away typed details).
+ * counting down, and someone who tapped the wrong fob can immediately tap the
+ * right one without waiting out the countdown.
  */
 function KioskFlow() {
   const [view, setView] = useState<View>({ name: "idle" });
@@ -83,7 +85,7 @@ function KioskFlow() {
         break;
 
       case "UNKNOWN_FOB":
-        setView({ name: "register", fobId: outcome.fob_id });
+        setView({ name: "unrecognised" });
         break;
 
       case "INVALID":
@@ -97,23 +99,16 @@ function KioskFlow() {
     }
   }, []);
 
-  const scannerArmed =
-    view.name === "idle" || view.name === "result" || view.name === "error";
+  const { inputProps } = useFobScanner({
+    onScan: handleScan,
+    enabled: view.name !== "working",
+  });
 
-  const { inputProps } = useFobScanner({ onScan: handleScan, enabled: scannerArmed });
-
-  const returnToIdle = useCallback(() => setView({ name: "idle" }), []);
-
-  const handleRegistered = useCallback(
-    (result: KioskResult) => setView({ name: "result", result }),
-    [],
-  );
-
-  // Timed return to idle. Re-armed on every result and error, and cancelled if
-  // another scan moves the screen on first.
+  // Timed return to idle. Re-armed on every terminal screen, and cancelled if
+  // another scan moves things on first.
   useEffect(() => {
-    if (view.name !== "result" && view.name !== "error") return;
-    const delay = view.name === "result" ? RESULT_RESET_MS : ERROR_RESET_MS;
+    if (view.name === "idle" || view.name === "working") return;
+    const delay = view.name === "error" ? ERROR_RESET_MS : RESULT_RESET_MS;
     const id = window.setTimeout(() => setView({ name: "idle" }), delay);
     return () => window.clearTimeout(id);
   }, [view]);
@@ -135,11 +130,12 @@ function KioskFlow() {
         />
       ) : null}
 
-      {view.name === "register" ? (
-        <RegistrationScreen
-          fobId={view.fobId}
-          onCancel={returnToIdle}
-          onRegistered={handleRegistered}
+      {view.name === "unrecognised" ? (
+        <NoticeScreen
+          tone="alert"
+          title="Unrecognised keyfob"
+          detail="Please see reception to register."
+          resetMs={RESULT_RESET_MS}
         />
       ) : null}
 
@@ -148,6 +144,7 @@ function KioskFlow() {
           tone="error"
           title="Sorry — we could not record that"
           detail={`${view.message} If it happens again, please see reception.`}
+          resetMs={ERROR_RESET_MS}
         />
       ) : null}
     </>

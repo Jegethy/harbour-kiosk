@@ -17,7 +17,10 @@ export type ScanOutcome =
       full_name: string;
       at: string;
     }
-  /** Fob is not in the database — the kiosk routes to registration. */
+  /**
+   * Fob is not in the database. Visitors no longer register themselves, so the
+   * kiosk shows a red "see reception" screen rather than a form.
+   */
   | { outcome: "UNKNOWN_FOB"; fob_id: string }
   /** Empty or unusable code. Stay idle; the visitor just taps again. */
   | { outcome: "INVALID" }
@@ -25,14 +28,6 @@ export type ScanOutcome =
   | { outcome: "ERROR"; message: string };
 
 export type ScanOutcomeKind = ScanOutcome["outcome"];
-
-/** The contract for register_visitor() and /api/kiosk/register. */
-export type RegisterOutcome =
-  | { outcome: "REGISTERED"; visitor_id: string; full_name: string; at: string }
-  /** The fob was claimed between the scan and the form submission. */
-  | { outcome: "FOB_TAKEN" }
-  | { outcome: "INVALID" }
-  | { outcome: "ERROR"; message: string };
 
 function outcomeKind(value: unknown): string | null {
   if (typeof value !== "object" || value === null) return null;
@@ -51,9 +46,3 @@ export function isScanOutcome(value: unknown): value is ScanOutcome {
   );
 }
 
-export function isRegisterOutcome(value: unknown): value is RegisterOutcome {
-  const kind = outcomeKind(value);
-  return (
-    kind === "REGISTERED" || kind === "FOB_TAKEN" || kind === "INVALID" || kind === "ERROR"
-  );
-}
