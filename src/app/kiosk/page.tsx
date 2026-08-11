@@ -6,6 +6,8 @@ import { IdleScreen } from "@/components/kiosk/IdleScreen";
 import { NoticeScreen } from "@/components/kiosk/NoticeScreen";
 import { OfflineScreen } from "@/components/kiosk/OfflineScreen";
 import { ResultScreen, type KioskResult } from "@/components/kiosk/ResultScreen";
+// DEV ONLY — remove with src/dev/. See DEPLOYMENT.md.
+import { KioskFobSimulator } from "@/dev/KioskFobSimulator";
 import { useConnectivity } from "@/hooks/useConnectivity";
 import { useFobScanner } from "@/hooks/useFobScanner";
 import { submitScan } from "@/lib/kiosk/api";
@@ -116,6 +118,8 @@ function KioskFlow() {
   return (
     <>
       <FobCaptureInput inputProps={inputProps} />
+      {/* DEV ONLY — remove with src/dev/. See DEPLOYMENT.md. */}
+      <KioskFobSimulator />
 
       {view.name === "idle" ? <IdleScreen /> : null}
 

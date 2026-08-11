@@ -3,6 +3,8 @@
 import { useRef, useState, useTransition } from "react";
 import { createVisitorAction } from "@/app/admin/actions";
 import { FobIdField } from "@/components/admin/FobIdField";
+// DEV ONLY — remove with src/dev/. See DEPLOYMENT.md.
+import { AdminFobSimulator } from "@/dev/AdminFobSimulator";
 
 /**
  * Staff-side visitor registration.
@@ -120,6 +122,8 @@ export function AddVisitorDialog() {
           />
 
           <FobIdField value={fobId} onChange={setFobId} disabled={pending} />
+          {/* DEV ONLY — remove with src/dev/. See DEPLOYMENT.md. */}
+          <AdminFobSimulator disabled={pending} />
 
           {error ? (
             <p

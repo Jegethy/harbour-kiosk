@@ -4,6 +4,19 @@ Work through this before the kiosk goes live in the lobby.
 
 ## Must do before go-live
 
+- [ ] **Remove the fob hardware simulator.** It exists only because the reader
+      was on order, and it can create check-ins without a physical fob.
+      1. `rm -rf src/dev/`
+      2. Delete the four `// DEV ONLY` lines it leaves behind:
+         `grep -rn "@/dev" src/` finds both call sites.
+      3. Remove `NEXT_PUBLIC_ENABLE_FOB_SIMULATOR` from every environment.
+      4. `npm run build` — a clean build confirms nothing else referenced it.
+
+      Setting the variable to `false` is enough to stop it **rendering** — the
+      value is baked in at build time and every entry point checks it — but it
+      does **not** remove the code. Verified: with the flag off the component
+      and its strings are still in the client bundle. Deletion is the only
+      thing that actually removes it.
 - [ ] **Delete the `/kiosk/preview` route** (`src/app/kiosk/preview/`). It is a
       design walkthrough with stand-in data, kept for review only. It is
       unauthenticated and has no place in the lobby.
