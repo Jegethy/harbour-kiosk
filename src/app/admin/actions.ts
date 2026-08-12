@@ -115,6 +115,145 @@ export async function createVisitorAction(
   return { createdName: fullName };
 }
 
+export interface FobAssignResult {
+  error?: string;
+  assignedTo?: string;
+}
+
+/** Name whoever currently holds a fob, so a clash has an obvious next step. */
+async function fobHolder(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  fobId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("visitors")
+    .select("full_name")
+    .eq("fob_id", fobId)
+    .maybeSingle();
+  return data?.full_name ?? null;
+}
+
+/**
+ * Attach a keyfob to an existing visitor.
+ *
+ * Only ever adds to someone who has none: replacing a fob silently would leave
+ * the old one apparently valid but orphaned. Staff unlink first, which closes
+ * the previous assignment in the audit trail.
+ */
+export async function assignFobAction(formData: FormData): Promise<FobAssignResult> {
+  await requireStaff();
+
+  const visitorId = clean(formData, "visitor_id");
+  const fobId = clean(formData, "fob_id");
+
+  if (!visitorId) return { error: "No visitor selected." };
+  if (!fobId) return { error: "Tap a keyfob on the reader, or type its number." };
+  if (fobId.length > 64) return { error: "That keyfob number is too long." };
+
+  const supabase = await createClient();
+
+  const { data: visitor } = await supabase
+    .from("visitors")
+    .select("id, full_name, fob_id")
+    .eq("id", visitorId)
+    .maybeSingle();
+
+  if (!visitor) return { error: "That visitor no longer exists." };
+  if (visitor.fob_id) {
+    return { error: `${visitor.full_name} already has a keyfob. Unlink it first.` };
+  }
+
+  // `.is("fob_id", null)` makes this a no-op if someone assigned a fob between
+  // the read above and this write.
+  const { data: updated, error } = await supabase
+    .from("visitors")
+    .update({ fob_id: fobId })
+    .eq("id", visitorId)
+    .is("fob_id", null)
+    .select("id");
+
+  if (error) {
+    if (error.code === "23505") {
+      const holder = await fobHolder(supabase, fobId);
+      return {
+        error: holder
+          ? `That keyfob is already assigned to ${holder}. Unlink it from them first.`
+          : "That keyfob is already assigned to someone else.",
+      };
+    }
+    console.error("[admin] could not assign fob", error);
+    return { error: "Could not assign that keyfob. Please try again." };
+  }
+
+  if (!updated || updated.length === 0) {
+    return { error: "That visitor was given a keyfob a moment ago. Refresh and try again." };
+  }
+
+  revalidatePath("/admin/visitors");
+  revalidatePath("/admin");
+
+  return { assignedTo: visitor.full_name };
+}
+
+export interface DeleteVisitorResult {
+  error?: string;
+  deletedName?: string;
+}
+
+/**
+ * Permanently remove a visitor profile.
+ *
+ * Refused while a keyfob is still attached — otherwise the physical token is
+ * left unaccounted for, with no record of who has it. The database enforces
+ * the same rule, so it holds for the Supabase dashboard too.
+ *
+ * The fob history in fob_assignments survives this: visitor_id goes null and
+ * the name snapshot remains.
+ */
+export async function deleteVisitorAction(formData: FormData): Promise<DeleteVisitorResult> {
+  await requireStaff();
+
+  const visitorId = clean(formData, "visitor_id");
+  const confirmation = String(formData.get("confirmation") ?? "");
+
+  if (!visitorId) return { error: "No visitor selected." };
+
+  // Re-checked here, not just in the dialog: a server action is reachable by
+  // anyone who can post to it, whatever the form did or did not require.
+  if (confirmation !== "CONFIRM") {
+    return { error: 'Type CONFIRM exactly, in capitals, to delete this record.' };
+  }
+
+  const supabase = await createClient();
+
+  const { data: visitor } = await supabase
+    .from("visitors")
+    .select("id, full_name, fob_id")
+    .eq("id", visitorId)
+    .maybeSingle();
+
+  if (!visitor) return { error: "That visitor no longer exists." };
+  if (visitor.fob_id) {
+    return { error: "Unlink the keyfob before deleting this visitor." };
+  }
+
+  const { error } = await supabase
+    .from("visitors")
+    .delete()
+    .eq("id", visitorId)
+    .is("fob_id", null);
+
+  if (error) {
+    console.error("[admin] could not delete visitor", error);
+    return { error: "Could not delete this visitor. Please try again." };
+  }
+
+  revalidatePath("/admin/visitors");
+  revalidatePath("/admin");
+
+  return { deletedName: visitor.full_name };
+}
+
 export async function signOutAction(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();

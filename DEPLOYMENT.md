@@ -65,6 +65,17 @@ Work through this before the kiosk goes live in the lobby.
       recovers, rather than hanging.
 - [ ] Unlink a fob for someone currently signed in, and confirm they disappear
       from the roster.
+- [ ] "Register fob" on an unlinked visitor accepts a tap on the desk reader,
+      and refuses a fob already held by someone else, naming the holder.
+- [ ] "Delete visitor" stays disabled until `CONFIRM` is typed exactly, and is
+      only offered on records with no fob attached.
+- [ ] After unlinking and reassigning a fob, `fob_assignments` holds one closed
+      row and one open row for it:
+      ```
+      select visitor_name, fob_id, assigned_at, unassigned_at
+      from fob_assignments order by assigned_at desc limit 5;
+      ```
+- [ ] Car registrations appear on the roster and on the printed evacuation list.
 - [ ] Confirm the anon key cannot read data directly — RLS should deny it:
       ```
       curl "$SUPABASE_URL/rest/v1/visitors?select=*" -H "apikey: $ANON_KEY"
@@ -137,6 +148,9 @@ the home, and check the Supabase project region suits your obligations.
   confidently wrong is worse than one that is honestly unavailable. The kiosk
   detects the outage and shows "System offline — please see reception", then
   recovers on its own.
-- The printed evacuation list does not include car registrations. Say if you
-  want them — it is a column on the view and the print table.
 - Nothing prunes old visitor records; see the retention item above.
+- Deleting a visitor also deletes their visit history, which is the record of
+  when they were in the building. The confirmation dialog says how many records
+  will go. Their keyfob history survives — `fob_assignments` keeps a snapshot of
+  the name and outlives the profile.
+- `fob_assignments` has no screen of its own yet. Query it directly for now.

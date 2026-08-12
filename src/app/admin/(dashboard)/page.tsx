@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LiveRoster } from "@/components/admin/LiveRoster";
 import { requireStaff } from "@/lib/auth";
+import { describeQueryError } from "@/lib/supabase/errors";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -28,7 +29,7 @@ export default async function RosterPage() {
   return (
     <LiveRoster
       initial={data ?? []}
-      loadError={error ? "Could not load the roster. Retrying automatically." : null}
+      loadError={describeQueryError(error, "Could not load the roster. Retrying automatically.")}
     />
   );
 }

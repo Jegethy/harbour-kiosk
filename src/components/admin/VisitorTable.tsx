@@ -2,12 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { AddVisitorDialog } from "@/components/admin/AddVisitorDialog";
+import { DeleteVisitorDialog } from "@/components/admin/DeleteVisitorDialog";
+import { RegisterFobDialog } from "@/components/admin/RegisterFobDialog";
 import { UnlinkFobButton } from "@/components/admin/UnlinkFobButton";
-import type { VisitorRow } from "@/lib/types/database";
-
-export interface VisitorWithStatus extends VisitorRow {
-  currentlyIn: boolean;
-}
+import type { VisitorAdminRow } from "@/lib/types/database";
 
 const registeredFormat = new Intl.DateTimeFormat("en-GB", {
   day: "numeric",
@@ -15,7 +13,7 @@ const registeredFormat = new Intl.DateTimeFormat("en-GB", {
   year: "numeric",
 });
 
-export function VisitorTable({ visitors }: { visitors: VisitorWithStatus[] }) {
+export function VisitorTable({ visitors }: { visitors: VisitorAdminRow[] }) {
   const [query, setQuery] = useState("");
 
   const filtered = useMemo(() => {
@@ -121,7 +119,7 @@ export function VisitorTable({ visitors }: { visitors: VisitorWithStatus[] }) {
                   </td>
 
                   <td className="px-4 py-3">
-                    {visitor.currentlyIn ? (
+                    {visitor.currently_in ? (
                       <span className="rounded-full bg-status-ok/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-status-ok">
                         In building
                       </span>
@@ -137,12 +135,23 @@ export function VisitorTable({ visitors }: { visitors: VisitorWithStatus[] }) {
                       <UnlinkFobButton
                         visitorId={visitor.id}
                         fullName={visitor.full_name}
-                        currentlyIn={visitor.currentlyIn}
+                        currentlyIn={visitor.currently_in}
                       />
                     ) : (
-                      <span className="text-sm text-neutral-dark/40">
-                        Fob already free
-                      </span>
+                      // Deletion is offered only here, on unlinked records: a
+                      // profile with a fob still attached would leave the
+                      // physical token unaccounted for.
+                      <div className="flex flex-wrap items-start gap-2">
+                        <RegisterFobDialog
+                          visitorId={visitor.id}
+                          fullName={visitor.full_name}
+                        />
+                        <DeleteVisitorDialog
+                          visitorId={visitor.id}
+                          fullName={visitor.full_name}
+                          visitCount={visitor.visit_count}
+                        />
+                      </div>
                     )}
                   </td>
                 </tr>

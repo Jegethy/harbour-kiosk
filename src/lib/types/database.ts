@@ -37,6 +37,29 @@ export type LiveRosterRow = {
   company_or_relation: string | null;
   visiting_who: string | null;
   check_in_time: string;
+  /** Shown on the roster so wardens can match people to cars still on site. */
+  car_registration: string | null;
+};
+
+/**
+ * Historical record of who held which fob.
+ *
+ * visitor_id goes null if the profile is deleted; visitor_name is a snapshot
+ * taken at assignment time, so the row stays readable either way.
+ */
+export type FobAssignmentRow = {
+  id: string;
+  visitor_id: string | null;
+  visitor_name: string;
+  fob_id: string;
+  assigned_at: string;
+  unassigned_at: string | null;
+};
+
+/** visitors, plus the two facts the management table needs. */
+export type VisitorAdminRow = VisitorRow & {
+  currently_in: boolean;
+  visit_count: number;
 };
 
 export type Database = {
@@ -47,6 +70,14 @@ export type Database = {
         Insert: Omit<VisitorRow, "id" | "created_at"> &
           Partial<Pick<VisitorRow, "id" | "created_at">>;
         Update: Partial<VisitorRow>;
+        Relationships: [];
+      };
+      /** Read-only from the app; rows are written by a trigger on visitors. */
+      fob_assignments: {
+        Row: FobAssignmentRow;
+        Insert: Omit<FobAssignmentRow, "id" | "assigned_at" | "unassigned_at"> &
+          Partial<Pick<FobAssignmentRow, "id" | "assigned_at" | "unassigned_at">>;
+        Update: Partial<FobAssignmentRow>;
         Relationships: [];
       };
       visit_logs: {
@@ -60,6 +91,10 @@ export type Database = {
     Views: {
       live_roster: {
         Row: LiveRosterRow;
+        Relationships: [];
+      };
+      visitors_admin: {
+        Row: VisitorAdminRow;
         Relationships: [];
       };
     };

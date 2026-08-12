@@ -144,13 +144,14 @@ export function LiveRoster({
         </p>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-neutral-dark/10 bg-white shadow-sm print:overflow-visible print:rounded-none print:border-0">
-          <table className="w-full min-w-[36rem] border-collapse text-left print:min-w-0">
+          <table className="w-full min-w-[44rem] border-collapse text-left print:min-w-0">
             <thead>
               <tr className="border-b-2 border-neutral-dark/10 bg-neutral-light">
                 <Th>Name</Th>
                 <Th>Visiting</Th>
+                <Th>Car</Th>
                 <Th>Signed in</Th>
-                {/* Duration is screen-only; the paper list is names, who, and when. */}
+                {/* Duration is screen-only; it tells a warden nothing on paper. */}
                 <Th className="print:hidden">Here for</Th>
               </tr>
             </thead>
@@ -169,6 +170,13 @@ export function LiveRoster({
                   </td>
                   <td className="px-4 py-3 text-lg text-neutral-dark">
                     {row.visiting_who ?? <span className="text-neutral-dark/40">—</span>}
+                  </td>
+                  <td className="px-4 py-3">
+                    {row.car_registration ? (
+                      <RegistrationPlate value={row.car_registration} />
+                    ) : (
+                      <span className="text-neutral-dark/40">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-lg tabular-nums text-neutral-dark">
                     {formatClockTime(new Date(row.check_in_time))}
@@ -193,6 +201,25 @@ function Th({ children, className = "" }: { children: React.ReactNode; className
     >
       {children}
     </th>
+  );
+}
+
+/**
+ * Number-plate styling, deliberately off-brand.
+ *
+ * A warden is holding this sheet in a car park matching it against physical
+ * vehicles, so it borrows the visual language of the thing being looked for
+ * rather than the visual language of the app.
+ *
+ * The border and monospace tracking carry it on paper: the print stylesheet
+ * strips every background, so the yellow is screen-only and the plate still
+ * reads as a plate in black and white.
+ */
+function RegistrationPlate({ value }: { value: string }) {
+  return (
+    <span className="inline-block rounded border-2 border-neutral-dark bg-[#f5d400] px-2.5 py-1 font-mono text-base font-bold uppercase tracking-widest text-neutral-dark">
+      {value}
+    </span>
   );
 }
 

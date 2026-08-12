@@ -23,10 +23,16 @@ export function FobIdField({
   value,
   onChange,
   disabled,
+  optional = true,
+  autoFocus = false,
+  idleHint = "Click this field, then tap the fob. Leave blank to assign one later.",
 }: {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  optional?: boolean;
+  autoFocus?: boolean;
+  idleHint?: string;
 }) {
   const bufferRef = useRef<ScanBuffer | null>(null);
   if (bufferRef.current === null) bufferRef.current = new ScanBuffer();
@@ -79,7 +85,9 @@ export function FobIdField({
         <label htmlFor="fob_id" className="text-sm font-semibold text-neutral-dark">
           Keyfob ID
         </label>
-        <span className="text-xs font-medium text-neutral-dark/50">Optional</span>
+        <span className="text-xs font-medium text-neutral-dark/50">
+          {optional ? "Optional" : "Required"}
+        </span>
       </span>
 
       <div className="relative">
@@ -89,6 +97,7 @@ export function FobIdField({
           type="text"
           value={value}
           disabled={disabled}
+          autoFocus={autoFocus}
           autoComplete="off"
           spellCheck={false}
           maxLength={64}
@@ -128,9 +137,7 @@ export function FobIdField({
         ) : focused ? (
           <span className="text-brand-primary">Ready — tap a fob on the reader now.</span>
         ) : (
-          <span className="text-neutral-dark/50">
-            Click this field, then tap the fob. Leave blank to assign one later.
-          </span>
+          <span className="text-neutral-dark/50">{idleHint}</span>
         )}
       </p>
     </div>
